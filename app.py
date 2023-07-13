@@ -7,7 +7,9 @@ from policyengine_us import Simulation
 # Create a function to get net income for the household, married or separate.
 
 
-def get_net_incomes(state_code, head_employment_income, spouse_employment_income):
+def get_net_incomes(
+    state_code, head_employment_income, spouse_employment_income
+):
     # Tuple of net income for separate and married.
     net_income_married = get_net_income(
         state_code, head_employment_income, spouse_employment_income
@@ -19,8 +21,11 @@ def get_net_incomes(state_code, head_employment_income, spouse_employment_income
 
 DEFAULT_AGE = 40
 
+
 # Create a function to get net income for household
-def get_net_income(state_code, head_employment_income, spouse_employment_income=None):
+def get_net_income(
+    state_code, head_employment_income, spouse_employment_income=None
+):
     # Start by adding the single head.
     situation = {
         "people": {
@@ -44,7 +49,10 @@ def get_net_income(state_code, head_employment_income, spouse_employment_income=
     situation["tax_units"] = {"your tax unit": {"members": members}}
     situation["spm_units"] = {"your spm_unit": {"members": members}}
     situation["households"] = {
-        "your household": {"members": members, "state_name": {"2023": state_code}}
+        "your household": {
+            "members": members,
+            "state_name": {"2023": state_code},
+        }
     }
 
     simulation = Simulation(situation=situation)
@@ -81,7 +89,7 @@ def summarize_marriage_bonus(marriage_bonus):
     return (
         f"If you file separately, your combined net income will be ${abs(marriage_bonus):,.2f} "
         f"{'less' if marriage_bonus > 0 else 'more'} "
-        f"({abs(marriage_bonus_percent):.2f}%) than if you file together."
+        f"({abs(marriage_bonus_percent):.1%}) than if you file together."
     )
 
 
