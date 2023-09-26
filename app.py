@@ -53,7 +53,16 @@ def get_net_income(state_code, head_employment_income, spouse_employment_income=
 
 
 # Create Streamlit inputs for state code, head income, and spouse income.
-state_code = st.text_input("State Code", "CA")
+
+# List of U.S. state codes
+us_state_codes = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+]
+state_code = st.selectbox("Select State Code", us_state_codes, index=0) 
 head_employment_income = st.number_input("Head Employment Income", 0)
 spouse_employment_income = st.number_input("Spouse Employment Income", 0)
 
