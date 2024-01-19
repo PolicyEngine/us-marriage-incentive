@@ -1,10 +1,9 @@
 import streamlit as st
-import plotly.graph_objs as go
 import numpy as np
-from scipy.interpolate import griddata
+import plotly.graph_objs as go
 #
 from policyengine_us import Simulation
-
+from policyengine_core.charts import format_fig, BLUE, GRAY, DARK_GRAY
 
 # Create a function to get net income for the household, married or separate.
 
@@ -23,7 +22,6 @@ DEFAULT_AGE = 40
 
 # Create a function to get net income for household
 def get_net_income(state_code, head_employment_income, spouse_employment_income=None):
-    # Convert NumPy int64 to Python int
     head_employment_income = int(head_employment_income)
     if spouse_employment_income is not None:
         spouse_employment_income = int(spouse_employment_income)
@@ -58,18 +56,16 @@ def get_net_income(state_code, head_employment_income, spouse_employment_income=
 
     return simulation.calculate("household_net_income", 2023)[0]
 
-def generate_heatmap_data(state_code, income_range):
-    data = []
-    for head_income in income_range:
-        row = []
-        for spouse_income in income_range:
-            net_income_married, _ = get_net_incomes(
-                state_code, head_income, spouse_income
-            )
-            # Convert to Python int before appending
-            row.append(int(net_income_married))
-        data.append(row)
-    return np.array(data)
+def generate_heatmap_data(state_code):
+    income_range = np.arange(0, 10001, 1000)
+    data = np.zeros((len(income_range), len(income_range)))
+
+    for i, head_income in enumerate(income_range):
+        for j, spouse_income in enumerate(income_range):
+            net_income_married, net_income_separate = get_net_incomes(state_code, head_income, spouse_income)
+            data[j, i] = net_income_married - net_income_separate  # Calculate the difference
+
+    return data, income_range
 
 
 # Create Streamlit inputs for state code, head income, and spouse income.
@@ -114,31 +110,21 @@ else:
 
 st.write(summarize_marriage_bonus(marriage_bonus))
 
-if st.button("Generate Heatmap"):
-    with st.spinner('Generating heatmap...'):
-        income_range = np.arange(0, 10001, 1000)
-        heatmap_data = generate_heatmap_data(state_code, income_range)    
-        income_range = np.arange(0, 10001, 1000)  # Income range from 0 to 10,000, step 1,000
-        heatmap_data = generate_heatmap_data(state_code, income_range)
+# Generate and display heatmap
+heatmap_data, income_range = generate_heatmap_data(state_code)
+heatmap = go.Figure(data=go.Heatmap(
+    z=heatmap_data,
+    x=income_range,
+    y=income_range,
+    colorscale=[(0, DARK_GRAY), (0.5, GRAY), (1, BLUE)]  # Use imported color constants
+))
 
-        # Create heatmap
-        heatmap = go.Figure(data=go.Heatmap(
-            z=heatmap_data,
-            x=income_range,
-            y=income_range,
-            colorscale='Viridis'
-        ))
+# Apply formatting from policyengine_core.charts
+heatmap = format_fig(heatmap)
+heatmap.update_layout(
+    title='Marriage Incentive Analysis',
+    xaxis_title="Head Employment Income",
+    yaxis_title="Spouse Employment Income"
+)
 
-        heatmap.update_layout(
-            title='Net Income Heatmap',
-            xaxis_nticks=36,
-            yaxis_nticks=36,
-            xaxis_title="Head Employment Income",
-            yaxis_title="Spouse Employment Income"
-        )
-
-    # Display heatmap in Streamlit
-    st.plotly_chart(heatmap)
-    # test_data = np.random.rand(10, 10)  # Simple random data for testing
-    # heatmap = go.Figure(data=go.Heatmap(z=test_data))
-    # st.plotly_chart(heatmap)
+st.plotly_chart(heatmap)
