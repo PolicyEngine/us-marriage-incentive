@@ -4,7 +4,7 @@ import plotly.graph_objs as go
 #
 from policyengine_us import Simulation
 from policyengine_core.charts import format_fig, BLUE, GRAY, DARK_GRAY
-from joblib import Parallel, delayed
+
 # Create a function to get net income for the household, married or separate.
 
 
@@ -56,6 +56,18 @@ def get_net_income(state_code, head_employment_income, spouse_employment_income=
 
     return simulation.calculate("household_net_income", 2023)[0]
 
+def generate_heatmap_data(state_code):
+    income_range = np.arange(0, 80001, 5000)
+    data = np.zeros((len(income_range), len(income_range)))
+
+    for i, head_income in enumerate(income_range):
+        for j, spouse_income in enumerate(income_range):
+            net_income_married, net_income_separate = get_net_incomes(state_code, head_income, spouse_income)
+            data[j, i] = net_income_married < net_income_separate
+
+    return data, income_range
+
+
 # Create Streamlit inputs for state code, head income, and spouse income.
 state_code = st.text_input("State Code", "CA")
 head_employment_income = st.number_input("Head Employment Income", 0)
@@ -70,27 +82,6 @@ net_income_married, net_income_separate = get_net_incomes(
 marriage_bonus = net_income_married - net_income_separate
 marriage_bonus_percent = marriage_bonus / net_income_married
 
-def generate_heatmap_data(state_code):
-    income_range = np.arange(0, 80001, 5000)  # Adjust the step size if needed
-    data = np.zeros((len(income_range), len(income_range)), dtype=bool)
-
-    # Function to process each income pair
-    def process_income_pair(i, j):
-        head_income = income_range[i]
-        spouse_income = income_range[j]
-        net_income_married, net_income_separate = get_net_incomes(state_code, head_income, spouse_income)
-        return net_income_married < net_income_separate  # True for penalty, False otherwise
-
-    # Generate heatmap data using parallel processing
-    results = Parallel(n_jobs=-1)(delayed(process_income_pair)(i, j) for i in range(len(income_range)) for j in range(len(income_range)))
-    
-    # Reshape results back into a matrix
-    for idx, value in enumerate(results):
-        i = idx // len(income_range)
-        j = idx % len(income_range)
-        data[j, i] = value
-
-    return data, income_range
 
 # Display net incomes in Streamlit.
 st.write("Net Income Married: ", net_income_married)
