@@ -90,7 +90,7 @@ def summarize_marriage_bonus(marriage_bonus):
     )
 
 def check_child_influence(child_num):
-    salary_ranges = [ 10000,20000,30000,40000,50000,60000,70000,80000,90000,100000]
+    salary_ranges = [  20000,40000,60000,80000,100000]
     data = []
     for i in range(len(salary_ranges)):
         temp_data = []
@@ -113,8 +113,8 @@ def check_child_influence(child_num):
 def get_chart(data):
  
     # Set numerical values for x and y axes
-    x_values = [ 10000,20000,30000,40000,50000,60000,70000,80000,90000,100000]
-    y_values = [  10000,20000,30000,40000,50000,60000,70000,80000,90000,100000]
+    x_values = [ 20000,40000,60000,80000,100000]
+    y_values = [ 20000,40000,60000,80000,100000]
   
     fig = px.imshow(data,
                     labels=dict(x="Head Employment", y="Spouse Employment", color="Penalty/Bonus"),
@@ -143,9 +143,15 @@ def get_chart(data):
     highlight_text = "You"
 
     # Add text annotation at the specified spot
-    fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
+    if marriage_bonus > 0:
+        fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
                              mode="text", text=[highlight_text],
                              textfont=dict(size=20, color="red"),
+                             showlegend=False))
+    else:
+        fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
+                             mode="text", text=[highlight_text],
+                             textfont=dict(size=20, color="green"),
                              showlegend=False))
 
     #add header
