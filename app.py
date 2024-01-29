@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 #
 from policyengine_us import Simulation
 # Create a function to get net income for the household, married or separate.
@@ -89,7 +90,7 @@ def summarize_marriage_bonus(marriage_bonus):
     )
 
 def check_child_influence(child_num):
-    salary_ranges = [60000, 80000, 100000]
+    salary_ranges = [ 10000,20000,30000,40000,50000,60000,70000,80000,90000,100000]
     data = []
     for i in range(len(salary_ranges)):
         temp_data = []
@@ -104,15 +105,16 @@ def check_child_influence(child_num):
                 temp_data.append(1)
             else:
                 temp_data.append(0)
+        print(data)
         data.append(temp_data)
     return data
-            
 
-def get_chart(data, child):
+    
+def get_chart(data):
  
     # Set numerical values for x and y axes
-    x_values = [60000, 80000, 100000]
-    y_values = [60000, 80000, 100000]
+    x_values = [ 10000,20000,30000,40000,50000,60000,70000,80000,90000,100000]
+    y_values = [  10000,20000,30000,40000,50000,60000,70000,80000,90000,100000]
   
     fig = px.imshow(data,
                     labels=dict(x="Head Employment", y="Spouse Employment", color="Penalty/Bonus"),
@@ -136,15 +138,24 @@ def get_chart(data, child):
             ticktext=[f'{val:,}' for val in y_values]
         )
     )
+     # Highlight a specific spot (e.g., row 0, column 1)
+    highlighted_row, highlighted_col = spouse_employment_income , head_employment_income, 
+    highlight_text = "You"
+
+    # Add text annotation at the specified spot
+    fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
+                             mode="text", text=[highlight_text],
+                             textfont=dict(size=20, color="red"),
+                             showlegend=False))
+
     #add header
-    st.header( f"Child {child + 1}")
+    st.header( f"# Children: {children}")
 
     # Display the chart
     st.plotly_chart(fig, theme="streamlit")
 
-for child in range(children):
-    data = check_child_influence(child)
-    get_chart(data, child)
+data = check_child_influence(children)
+get_chart(data)
 
 
 
