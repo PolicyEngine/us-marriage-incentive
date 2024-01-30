@@ -57,7 +57,7 @@ def get_net_income(state_code, head_employment_income, spouse_employment_income=
     return simulation.calculate("household_net_income", 2023)[0]
 
 def generate_heatmap_data(state_code):
-    income_range = np.arange(0, 80001, 5000)
+    income_range = np.arange(0, 80001, 10000)
     data = np.zeros((len(income_range), len(income_range)))
 
     for i, head_income in enumerate(income_range):
@@ -116,9 +116,11 @@ heatmap = go.Figure(data=go.Heatmap(
     z=heatmap_data,
     x=income_range,
     y=income_range,
-    colorscale=[(0, "green"), (1, "red")],  # Green for incentive/neutral, red for penalty
-    zmin=0,  # Minimum value for z-axis
-    zmax=1   # Maximum value for z-axis
+    colorscale=[(0, "#27AE60"), (1, "#E74C3C")],  # Direct mapping of 0 to green and 1 to red
+    colorbar=dict(
+        tickvals=[0, 1],
+        ticktext=["Incentive", "Penalty"]
+    )
 ))
 
 heatmap = format_fig(heatmap)
