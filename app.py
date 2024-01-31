@@ -1,7 +1,6 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-#
 from policyengine_us import Simulation
 # Create a function to get net income for the household, married or separate.
 def get_net_incomes(
