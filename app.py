@@ -90,7 +90,7 @@ def summarize_marriage_bonus(marriage_bonus):
     )
 
 def check_child_influence(child_num):
-    salary_ranges = [  20000,40000,60000,80000,100000]
+    salary_ranges = [20000,40000,60000,80000,100000]
     data = []
     for i in range(len(salary_ranges)):
         temp_data = []
@@ -111,18 +111,17 @@ def check_child_influence(child_num):
 
     
 def get_chart(data):
- 
     # Set numerical values for x and y axes
-    x_values = [ 20000,40000,60000,80000,100000]
-    y_values = [ 20000,40000,60000,80000,100000]
-  
+    x_values = [20000, 40000, 60000, 80000, 100000]
+    y_values = [20000, 40000, 60000, 80000, 100000]
+
     fig = px.imshow(data,
-                    labels=dict(x="Head Employment", y="Spouse Employment", color="Penalty/Bonus"),
+                    labels=dict(x="Head Employment Income", y="Spouse Employment Income", color="Penalty/Bonus"),
                     x=x_values,
                     y=y_values,
                     color_continuous_scale=[[0, 'red'], [1, 'green']],
-
                    )
+
     fig.update_xaxes(side="top")
 
     # Format x and y axis tick labels
@@ -130,36 +129,79 @@ def get_chart(data):
         xaxis=dict(
             tickmode='array',
             tickvals=x_values,
-            ticktext=[f'{val:,}' for val in x_values]
+            ticktext=[f'{val:,}' for val in x_values],
+            showgrid=True,  # Show gridlines on x-axis
+            zeroline=False,  # Do not show zeroline
         ),
         yaxis=dict(
             tickmode='array',
             tickvals=y_values,
-            ticktext=[f'{val:,}' for val in y_values]
-        )
+            ticktext=[f'{val:,}' for val in y_values],
+            showgrid=True,  # Show gridlines on y-axis
+            zeroline=False,  # Do not show zeroline
+        ),
     )
-     # Highlight a specific spot (e.g., row 0, column 1)
-    highlighted_row, highlighted_col = spouse_employment_income , head_employment_income, 
+
+    # Add borders between sections
+    for val in x_values[:-1]:
+        fig.add_shape(
+            type="line",
+            x0=val + (x_values[1] - x_values[0]) / 2,
+            x1=val + (x_values[1] - x_values[0]) / 2,
+            y0=y_values[0],
+            y1=y_values[-1],
+            line=dict(color='black', width=2)
+        )
+
+    for val in y_values[:-1]:
+        fig.add_shape(
+            type="line",
+            x0=x_values[0],
+            x1=x_values[-1],
+            y0=val + (y_values[1] - y_values[0]) / 2,
+            y1=val + (y_values[1] - y_values[0]) / 2,
+            line=dict(color='black', width=2)
+        )
+
+    # Highlight a specific spot
+    highlighted_row, highlighted_col = spouse_employment_income, head_employment_income
     highlight_text = "You"
 
-    # Add text annotation at the specified spot
+    # Add main text annotation
     if marriage_bonus > 0:
         fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
-                             mode="text", text=[highlight_text],
-                             textfont=dict(size=20, color="red"),
-                             showlegend=False))
+                                 mode="text",
+                                 text=[highlight_text],
+                                 textfont=dict(size=20, color="green"),
+                                 showlegend=False))
     else:
         fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
-                             mode="text", text=[highlight_text],
-                             textfont=dict(size=20, color="green"),
+                                 mode="text",
+                                 text=[highlight_text],
+                                 textfont=dict(size=20, color="red"),
+                                 showlegend=False))
+
+    # Add a border around the text
+    fig.add_trace(go.Scatter(x=[highlighted_col], y=[highlighted_row],
+                             mode="text",
+                             text=[highlight_text],
+                             textfont=dict(size=22, color="blue"),
                              showlegend=False))
 
-    #add header
-    st.header( f"# Children: {children}")
+    # Add color scale legend
+    fig.update_layout(
+        coloraxis_colorbar=dict(
+            title="Penalty/Bonus",
+            tickvals=[0, 1],
+            ticktext=["Penalty ", "Bonus "],
+        )
+    )
+
+    # Add header
+    st.header("Heatmap ")
 
     # Display the chart
     st.plotly_chart(fig, theme="streamlit")
-
 data = check_child_influence(children)
 get_chart(data)
 
