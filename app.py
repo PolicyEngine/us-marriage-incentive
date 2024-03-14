@@ -1,4 +1,5 @@
 import streamlit as st
+import math
 #
 from policyengine_us import Simulation
 
@@ -47,11 +48,50 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
     }
 
     simulation = Simulation(situation=situation)
-    household_market_income = int(simulation.calculate( "household_market_income", 2023)[0])
-    household_benefits = int(simulation.calculate("household_benefits", 2023)[0])
-    household_refundable_tax_credits = int(simulation.calculate("household_refundable_tax_credits", 2023)[0])
-    household_refundable_tax_credits = int(simulation.calculate("household_refundable_tax_credits", 2023)[0])
-    household_tax_before_refundable_credits = int(simulation.calculate("household_tax_before_refundable_credits", 2023)[0])
+
+    #household market income calculation
+    hmi_result = simulation.calculate("household_market_income", 2023)[0]
+
+    # Check if the result is NaN
+    if math.isnan(hmi_result):
+    # Handle the NaN case (e.g., set to a default value)
+        household_market_income = 0  # Or any other default value
+    else:
+        # Convert the result to an integer
+        household_market_income = int(hmi_result)
+
+    # household_benefits calculation
+    hb_result = simulation.calculate("household_benefits", 2023)[0]
+
+    # Check if the result is NaN
+    if math.isnan(hb_result):
+    # Handle the NaN case (e.g., set to a default value)
+        household_benefits = 0  # Or any other default value
+    else:
+        # Convert the result to an integer
+        household_benefits = int(hb_result)
+
+    # household_refundable_tax_credits calculation
+    hrtc_result = simulation.calculate("household_refundable_tax_credits", 2023)[0]
+    # Check if the result is NaN
+    if math.isnan(hrtc_result):
+    # Handle the NaN case (e.g., set to a default value)
+        household_refundable_tax_credits = 0  # Or any other default value
+    else:
+        # Convert the result to an integer
+        household_refundable_tax_credits = int(hrtc_result)
+    
+
+    # household_tax_before_refundable_credits calculation
+    htbrc_result = simulation.calculate("household_tax_before_refundable_credits", 2023)[0]
+
+    # Check if the result is NaN
+    if math.isnan(htbrc_result):
+    # Handle the NaN case (e.g., set to a default value)
+        household_tax_before_refundable_credits = 0  # Or any other default value
+    else:
+        # Convert the result to an integer
+        household_tax_before_refundable_credits = int(htbrc_result)
    
 
     return [household_market_income ,household_benefits ,household_refundable_tax_credits,household_tax_before_refundable_credits]
