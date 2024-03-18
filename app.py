@@ -250,7 +250,7 @@ if submit:
         
         # Display the chart once data calculation is complete
         fig = px.imshow(data,
-                        labels=dict(x="Head Employment Income", y="Spouse Employment Income", color="Bonus"),
+                        labels=dict(x="Head Employment Income", y="Spouse Employment Income"),
                         x=x_values,
                         y=y_values,
                         origin='lower'
@@ -259,7 +259,11 @@ if submit:
         fig.update_xaxes(side="bottom")
         fig.update_coloraxes(
             showscale=True,
-            colorscale = color_scale
+            colorscale = color_scale,
+            colorbar=dict(
+        tickvals=[0, 1],
+        ticktext=["Penalty", "Bonus"]
+    )
         )
         fig.update_layout(
             xaxis=dict(
