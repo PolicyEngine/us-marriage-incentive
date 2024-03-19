@@ -262,7 +262,7 @@ if submit:
             colorscale = color_scale,
             colorbar=dict(
         tickvals=[0, 1],
-        ticktext=["Penalty", "Bonus"]
+        ticktext=[ "Penalty","Bonus"]
     )
         )
         fig.update_layout(
