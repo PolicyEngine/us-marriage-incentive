@@ -120,12 +120,7 @@ def get_net_income(state_code, spouse=None, children_ages = {}):
     return simulation.calculate("household_net_income", int(YEAR))
 
 #Streamlit heading and description
-# Check if the theme is set to 'dark'
-if st.get_option('theme') == 'dark':
-    text_color = 'white'
-else:
-    text_color = 'black'
-header = st.header(f'<span style="color:{text_color}">Marriage Incentive Calculator</span>', unsafe_allow_html=True)  
+header = st.header("Marriage Incentive Calculator")  
 header_description = st.write("This application evaluates marriage penalties and bonuses of couples, based on state and individual employment income")
 repo_link = st.markdown("This application utilizes <a href='https://github.com/PolicyEngine/us-marriage-incentive'>the policyengine API</a>", unsafe_allow_html=True)  
 
