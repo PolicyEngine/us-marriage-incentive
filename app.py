@@ -120,8 +120,7 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
             refundable_tax_amount = 0
             
         refundable_tax_dic[refundable_tax]=refundable_tax_amount
-    
-    print(refundable_tax_dic)
+
     
 
     return [household_net_income ,household_benefits ,household_refundable_tax_credits,household_tax_before_refundable_credits, benefits_dic, tax_bf_r_credits_dic, refundable_tax_dic]
@@ -382,7 +381,7 @@ if submit:
     
     # Display the tables in Streamlit
     if not filtered_benefits_df.empty and not filtered_tax_df.empty and not filtered_refundable_tax_df.empty: # all tabs
-        tab1, tab2, tab3, tab4 = st.tabs(["Summary", "Benefits Breakdown", "Refundable Tax Credits", "Tax Before Refundable Credits Breakdown"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Summary", "Benefits Breakdown", "Refundable Tax Credits Breakdown", "Tax Before Refundable Credits Breakdown"])
         with tab1:
             st.dataframe(table_data, hide_index=True)
 
