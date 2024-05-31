@@ -8,6 +8,7 @@ from policyengine_us.variables.household.demographic.geographic.state_code impor
 from policyengine_us.variables.household.income.household.household_benefits import household_benefits as HouseholdBenefits
 from policyengine_us.variables.household.income.household.household_tax_before_refundable_credits import household_tax_before_refundable_credits as HouseholdTaxBeforeRefundableCredits
 from policyengine_us.variables.household.income.household.household_refundable_tax_credits import household_refundable_tax_credits as HouseholdRefundableTaxCredits
+from policyengine_us.variables.gov.states.tax.income.state_income_tax_before_refundable_credits import state_income_tax_before_refundable_credits
 import numpy as np
 import pandas as pd
 import hashlib
@@ -89,12 +90,13 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
     
     # tax before refundable credits breakdown
     # tax_before_refundable_credits = HouseholdTaxBeforeRefundableCredits.adds
+    
     tax_adds = [
         "employee_payroll_tax",
         "self_employment_tax",
         "income_tax_before_refundable_credits",
         "flat_tax",
-        "household_state_tax_before_refundable_credits",
+        "household_state_tax_before_refundable_credits"
     ]
     
     tax_bf_r_credits_dic = {}
@@ -105,6 +107,17 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
             tax_amount = 0
             
         tax_bf_r_credits_dic[tax]=tax_amount
+
+    state_income_taxes = state_income_tax_before_refundable_credits.adds
+    for state_income_tax in state_income_taxes:
+        try:
+            state_tax_amount = int(simulation.calculate(state_income_tax, YEAR)[0])
+        except ValueError:
+            state_tax_amount = 0
+            
+        if state_tax_amount:
+            tax_bf_r_credits_dic[tax]=state_tax_amount    
+
     
     # refundable tax breakdown
     # refundable_tax_categories = HouseholdRefundableTaxCredits.adds
@@ -120,7 +133,6 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
             refundable_tax_amount = 0
             
         refundable_tax_dic[refundable_tax]=refundable_tax_amount
-
     
 
     return [household_net_income ,household_benefits ,household_refundable_tax_credits,household_tax_before_refundable_credits, benefits_dic, tax_bf_r_credits_dic, refundable_tax_dic]
@@ -130,6 +142,9 @@ def get_categorized_programs(state_code, head_employment_income, spouse_employme
     programs_head = get_programs(state_code, head_employment_income, None, children_ages)
     programs_spouse = get_programs(state_code, spouse_employment_income, None, {})  # Pass an empty dictionary for children_ages
     return [programs_married, programs_head, programs_spouse]
+
+def format_breakdown(lst):
+    return [item.replace('_', ' ').title() for item in lst]
 
 # Create a function to get net income for household
 def get_marital_values(state_code, spouse, children_ages, tax_unit):
@@ -249,6 +264,7 @@ if submit:
     
     # benefits breakdowns
     benefits_categories = programs[0][-3].keys()
+    formatted_benefits_categories = format_breakdown(benefits_categories)
     benefits_married = programs[0][-3].values()
     benefits_head = programs[1][-3].values()
     benefits_spouse = programs[2][-3].values()
@@ -264,6 +280,7 @@ if submit:
 
     # tax bf refundable credits breakdowns
     tax_categories = programs[0][-2].keys()
+    formatted_tax_categories = format_breakdown(tax_categories)
     tax_married = programs[0][-2].values()
     tax_head = programs[1][-2].values()
     tax_spouse = programs[2][-2].values()
@@ -279,6 +296,7 @@ if submit:
 
     # refundable tax credits breakdowns
     refundable_tax_categories = programs[0][-1].keys()
+    formatted_refundable_tax_categories = format_breakdown(refundable_tax_categories)
     refundable_tax_married = programs[0][-1].values()
     refundable_tax_head = programs[1][-1].values()
     refundable_tax_spouse = programs[2][-1].values()
@@ -308,7 +326,7 @@ if submit:
     formatted_delta = list(map(lambda x: "${:,}".format(round(x)), delta))
     formatted_delta_percent = list(map(lambda x: "{:.1%}".format(x), delta_percent))
 
-    programs = ["Net Income", "Benefits", "Refundable tax credits", "Taxes before refundable credits"]
+    programs = ["Net Income", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"]
 
 
     # Determine marriage penalty or bonus, and extent in dollars and percentage.
@@ -344,7 +362,7 @@ if submit:
 
     # Benefits breakdown table
     benefits_table = {
-        'Program': benefits_categories,
+        'Program': formatted_benefits_categories,
         'Not Married': formatted_benefits_separate,
         'Married': formatted_benefits_married,
         'Delta': formatted_benefits_delta,
@@ -357,7 +375,7 @@ if submit:
 
     # Tax Before Refundable Credits breakdown table
     tax_bf_refundable_credits_table = {
-        'Program': tax_categories,
+        'Program': formatted_tax_categories,
         'Not Married': formatted_tax_separate,
         'Married': formatted_tax_married,
         'Delta': formatted_tax_delta,
@@ -370,7 +388,7 @@ if submit:
 
     # Refundable Tax Credits breakdown table
     refundable_tax_table = {
-        'Program': refundable_tax_categories,
+        'Program': formatted_refundable_tax_categories,
         'Not Married': formatted_refundable_tax_separate,
         'Married': formatted_refundable_tax_married,
         'Delta': formatted_refundable_tax_delta,
