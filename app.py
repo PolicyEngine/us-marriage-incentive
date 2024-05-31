@@ -6,6 +6,9 @@ from policyengine_us.variables.household.demographic.geographic.state_code impor
     StateCode,
 )
 from policyengine_us.variables.household.income.household.household_benefits import household_benefits as HouseholdBenefits
+from policyengine_us.variables.household.income.household.household_tax_before_refundable_credits import household_tax_before_refundable_credits as HouseholdTaxBeforeRefundableCredits
+from policyengine_us.variables.household.income.household.household_refundable_tax_credits import household_refundable_tax_credits as HouseholdRefundableTaxCredits
+from policyengine_us.variables.gov.states.tax.income.state_income_tax_before_refundable_credits import state_income_tax_before_refundable_credits
 import numpy as np
 import pandas as pd
 import hashlib
@@ -69,14 +72,13 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
     }
     simulation = Simulation(situation=situation)
 
-    #benefits breakdown
-    benefits_categories = HouseholdBenefits.adds
-
     household_net_income = int(simulation.calculate("household_net_income", YEAR))
     household_benefits = int(simulation.calculate("household_benefits", YEAR))
     household_refundable_tax_credits = int(simulation.calculate("household_refundable_tax_credits", int(YEAR)))
     household_tax_before_refundable_credits = int(simulation.calculate("household_tax_before_refundable_credits", int(YEAR)))
     
+    # benefits breakdown
+    benefits_categories = HouseholdBenefits.adds
     benefits_dic ={}
     for benefit in benefits_categories:
         try:
@@ -85,14 +87,64 @@ def get_programs(state_code, head_employment_income, spouse_employment_income=No
             benefit_amount = 0
             
         benefits_dic[benefit]=benefit_amount
+    
+    # tax before refundable credits breakdown
+    # tax_before_refundable_credits = HouseholdTaxBeforeRefundableCredits.adds
+    
+    tax_adds = [
+        "employee_payroll_tax",
+        "self_employment_tax",
+        "income_tax_before_refundable_credits",
+        "flat_tax",
+        "household_state_tax_before_refundable_credits"
+    ]
+    
+    tax_bf_r_credits_dic = {}
+    for tax in tax_adds:
+        try:
+            tax_amount = int(simulation.calculate(tax, YEAR)[0])
+        except ValueError:
+            tax_amount = 0
+            
+        tax_bf_r_credits_dic[tax]=tax_amount
 
-    return [household_net_income ,household_benefits ,household_refundable_tax_credits,household_tax_before_refundable_credits, benefits_dic]
+    state_income_taxes = state_income_tax_before_refundable_credits.adds
+    for state_income_tax in state_income_taxes:
+        try:
+            state_tax_amount = int(simulation.calculate(state_income_tax, YEAR)[0])
+        except ValueError:
+            state_tax_amount = 0
+            
+        if state_tax_amount:
+            tax_bf_r_credits_dic[tax]=state_tax_amount    
+
+    
+    # refundable tax breakdown
+    # refundable_tax_categories = HouseholdRefundableTaxCredits.adds
+    refundable_tax_categories = [
+        "income_tax_refundable_credits",
+        "household_refundable_state_tax_credits",
+    ]
+    refundable_tax_dic ={}
+    for refundable_tax in refundable_tax_categories:
+        try:
+            refundable_tax_amount = int(simulation.calculate(refundable_tax, YEAR)[0])
+        except ValueError:
+            refundable_tax_amount = 0
+            
+        refundable_tax_dic[refundable_tax]=refundable_tax_amount
+    
+
+    return [household_net_income ,household_benefits ,household_refundable_tax_credits,household_tax_before_refundable_credits, benefits_dic, tax_bf_r_credits_dic, refundable_tax_dic]
    
 def get_categorized_programs(state_code, head_employment_income, spouse_employment_income, children_ages):
     programs_married = get_programs(state_code, head_employment_income, spouse_employment_income, children_ages)
     programs_head = get_programs(state_code, head_employment_income, None, children_ages)
     programs_spouse = get_programs(state_code, spouse_employment_income, None, {})  # Pass an empty dictionary for children_ages
     return [programs_married, programs_head, programs_spouse]
+
+def format_breakdown(lst):
+    return [item.replace('_', ' ').title() for item in lst]
 
 # Create a function to get net income for household
 def get_marital_values(state_code, spouse, children_ages, tax_unit):
@@ -211,10 +263,11 @@ if submit:
     programs = get_categorized_programs(state_code, head_employment_income, spouse_employment_income,  children_ages)
     
     # benefits breakdowns
-    benefits_categories = programs[0][-1].keys()
-    benefits_married = programs[0][-1].values()
-    benefits_head = programs[1][-1].values()
-    benefits_spouse = programs[2][-1].values()
+    benefits_categories = programs[0][-3].keys()
+    formatted_benefits_categories = format_breakdown(benefits_categories)
+    benefits_married = programs[0][-3].values()
+    benefits_head = programs[1][-3].values()
+    benefits_spouse = programs[2][-3].values()
     benefits_separate = [x + y for x, y in zip(benefits_head, benefits_spouse)]
     benefits_delta = [x - y for x, y in zip(benefits_married, benefits_separate)]
     benefits_delta_percent = [(x - y) / x if x != 0 else 0 for x, y in zip(benefits_married, benefits_separate)]
@@ -225,24 +278,55 @@ if submit:
     formatted_benefits_delta = list(map(lambda x: "${:,}".format(round(x)), benefits_delta))
     formatted_benefits_delta_percent = list(map(lambda x: "{:.1%}".format(x), benefits_delta_percent))
 
+    # tax bf refundable credits breakdowns
+    tax_categories = programs[0][-2].keys()
+    formatted_tax_categories = format_breakdown(tax_categories)
+    tax_married = programs[0][-2].values()
+    tax_head = programs[1][-2].values()
+    tax_spouse = programs[2][-2].values()
+    tax_separate = [x + y for x, y in zip(tax_head, tax_spouse)]
+    tax_delta = [x - y for x, y in zip(tax_married, tax_separate)]
+    tax_delta_percent = [(x - y) / x if x != 0 else 0 for x, y in zip(tax_married, tax_separate)]
+
+    # format tax breakdowns
+    formatted_tax_married = list(map(lambda x: "${:,}".format(round(x)), tax_married))
+    formatted_tax_separate = list(map(lambda x: "${:,}".format(round(x)), tax_separate))
+    formatted_tax_delta = list(map(lambda x: "${:,}".format(round(x)), tax_delta))
+    formatted_tax_delta_percent = list(map(lambda x: "{:.1%}".format(x), tax_delta_percent))
+
+    # refundable tax credits breakdowns
+    refundable_tax_categories = programs[0][-1].keys()
+    formatted_refundable_tax_categories = format_breakdown(refundable_tax_categories)
+    refundable_tax_married = programs[0][-1].values()
+    refundable_tax_head = programs[1][-1].values()
+    refundable_tax_spouse = programs[2][-1].values()
+    refundable_tax_separate = [x + y for x, y in zip(refundable_tax_head, refundable_tax_spouse)]
+    refundable_tax_delta = [x - y for x, y in zip(refundable_tax_married, refundable_tax_separate)]
+    refundable_tax_delta_percent = [(x - y) / x if x != 0 else 0 for x, y in zip(refundable_tax_married, refundable_tax_separate)]
+
+    # format refundable tax credits breakdowns
+    formatted_refundable_tax_married = list(map(lambda x: "${:,}".format(round(x)), refundable_tax_married))
+    formatted_refundable_tax_separate = list(map(lambda x: "${:,}".format(round(x)), refundable_tax_separate))
+    formatted_refundable_tax_delta = list(map(lambda x: "${:,}".format(round(x)), refundable_tax_delta))
+    formatted_refundable_tax_delta_percent = list(map(lambda x: "{:.1%}".format(x), refundable_tax_delta_percent))
+
     # married programs
-    married_programs = programs[0][:-1] # we exclude the last element which is the dictionary of benefits breakdown 
+    married_programs = programs[0][:-3] # we exclude the last element which is the dictionary of benefits breakdown 
     formatted_married_programs = list(map(lambda x: "${:,}".format(round(x)), married_programs))
     
     # separate programs
-    head_separate = programs[1][:-1] # we exclude the last element which is the dictionary of benefits breakdown 
-    spouse_separate = programs[2][:-1] # we exclude the last element which is the dictionary of benefits breakdown 
+    head_separate = programs[1][:-3] # we exclude the last element which is the dictionary of benefits breakdown 
+    spouse_separate = programs[2][:-3] # we exclude the last element which is the dictionary of benefits breakdown 
     separate = [x + y for x, y in zip(head_separate, spouse_separate)]
     formatted_separate = list(map(lambda x: "${:,}".format(round(x)), separate))
     
     # delta
     delta = [x - y for x, y in zip(married_programs, separate)]
     delta_percent = [(x - y) / x if x != 0 and x != 0 else 0 for x, y in zip(married_programs, separate)]
-
     formatted_delta = list(map(lambda x: "${:,}".format(round(x)), delta))
     formatted_delta_percent = list(map(lambda x: "{:.1%}".format(x), delta_percent))
 
-    programs = ["Net Income", "Benefits", "Refundable tax credits", "Taxes before refundable credits"]
+    programs = ["Net Income", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"]
 
 
     # Determine marriage penalty or bonus, and extent in dollars and percentage.
@@ -278,7 +362,7 @@ if submit:
 
     # Benefits breakdown table
     benefits_table = {
-        'Program': benefits_categories,
+        'Program': formatted_benefits_categories,
         'Not Married': formatted_benefits_separate,
         'Married': formatted_benefits_married,
         'Delta': formatted_benefits_delta,
@@ -288,10 +372,36 @@ if submit:
     # filter benefits to keep only the non-zero values
     benefits_df = pd.DataFrame(benefits_table)
     filtered_benefits_df = benefits_df[(benefits_df['Not Married'] != "$0") | (benefits_df['Married'] != "$0")]
+
+    # Tax Before Refundable Credits breakdown table
+    tax_bf_refundable_credits_table = {
+        'Program': formatted_tax_categories,
+        'Not Married': formatted_tax_separate,
+        'Married': formatted_tax_married,
+        'Delta': formatted_tax_delta,
+        'Delta Percentage': formatted_tax_delta_percent
+        
+    }
+    # filter tax before refundable credits to keep only the non-zero values
+    tax_before_refundable_credits_df = pd.DataFrame(tax_bf_refundable_credits_table)
+    filtered_tax_df = tax_before_refundable_credits_df[(tax_before_refundable_credits_df['Not Married'] != "$0") | (tax_before_refundable_credits_df['Married'] != "$0")]
+
+    # Refundable Tax Credits breakdown table
+    refundable_tax_table = {
+        'Program': formatted_refundable_tax_categories,
+        'Not Married': formatted_refundable_tax_separate,
+        'Married': formatted_refundable_tax_married,
+        'Delta': formatted_refundable_tax_delta,
+        'Delta Percentage': formatted_refundable_tax_delta_percent
+        
+    }
+    # filter benefits to keep only the non-zero values
+    refundable_tax_df = pd.DataFrame(refundable_tax_table)
+    filtered_refundable_tax_df = refundable_tax_df[(refundable_tax_df['Not Married'] != "$0") | (refundable_tax_df['Married'] != "$0")]
     
     # Display the tables in Streamlit
-    if not filtered_benefits_df.empty: # if we have benefits
-        tab1, tab2 = st.tabs(["Summary", "Benefits Breakdown"])
+    if not filtered_benefits_df.empty and not filtered_tax_df.empty and not filtered_refundable_tax_df.empty: # all tabs
+        tab1, tab2, tab3, tab4 = st.tabs(["Summary", "Benefits Breakdown", "Refundable Tax Credits Breakdown", "Tax Before Refundable Credits Breakdown"])
         with tab1:
             st.dataframe(table_data, hide_index=True)
 
@@ -299,7 +409,71 @@ if submit:
         with tab2:
             st.dataframe(filtered_benefits_df, hide_index=True)
 
-    else: # if we don't have benefits, display just the main table
+        with tab3:
+            st.dataframe(filtered_refundable_tax_df, hide_index=True)
+        
+        with tab4:
+            st.dataframe(filtered_tax_df, hide_index=True)
+
+    elif not filtered_benefits_df.empty and not filtered_tax_df.empty and filtered_refundable_tax_df.empty: # tab 2 and tab 4
+        tab1, tab2, tab4 = st.tabs(["Summary", "Benefits Breakdown", "Tax Before Refundable Credits Breakdown"])
+        with tab1:
+            st.dataframe(table_data, hide_index=True)
+
+        with tab2:
+            st.dataframe(filtered_benefits_df, hide_index=True)
+        
+        with tab4:
+            st.dataframe(filtered_tax_df, hide_index=True)
+
+    elif not filtered_benefits_df.empty and filtered_tax_df.empty and not filtered_refundable_tax_df.empty: # tab 2 and tab 3
+        tab1, tab2, tab3 = st.tabs(["Summary", "Benefits Breakdown", "Refundable Tax Credits Breakdown"])
+        with tab1:
+            st.dataframe(table_data, hide_index=True)
+
+        with tab2:
+            st.dataframe(filtered_benefits_df, hide_index=True)
+        
+        with tab3:
+            st.dataframe(filtered_refundable_tax_df, hide_index=True)
+
+    elif filtered_benefits_df.empty and not filtered_tax_df.empty and not filtered_refundable_tax_df.empty: # tab 3 and tab 4
+        tab1, tab3, tab4 = st.tabs(["Summary", "Refundable Tax Credits Breakdown", "Tax Before Refundable Credits Breakdown"])
+        with tab1:
+            st.dataframe(table_data, hide_index=True)
+
+        with tab3:
+            st.dataframe(filtered_refundable_tax_df, hide_index=True)
+        
+        with tab4:
+            st.dataframe(filtered_tax_df, hide_index=True)
+    
+
+    elif not filtered_benefits_df.empty and filtered_tax_df.empty and filtered_refundable_tax_df.empty: # tab 2
+        tab1, tab2 = st.tabs(["Summary", "Benefits Breakdown"])
+        with tab1:
+            st.dataframe(table_data, hide_index=True)
+
+        with tab2:
+            st.dataframe(filtered_benefits_df, hide_index=True)
+        
+    elif filtered_benefits_df.empty and not filtered_tax_df.empty and filtered_refundable_tax_df.empty: # tab 4
+        tab1, tab4 = st.tabs(["Summary", "Tax Before Refundable Credits Breakdown"])
+        with tab1:
+            st.dataframe(table_data, hide_index=True)
+
+        with tab4:
+            st.dataframe(filtered_tax_df, hide_index=True)
+
+    elif filtered_benefits_df.empty and filtered_tax_df.empty and not filtered_refundable_tax_df.empty: # tab 3
+        tab1, tab3 = st.tabs(["Summary", "Refundable Tax Credits Breakdown"])
+        with tab1:
+            st.dataframe(table_data, hide_index=True)
+
+        with tab3:
+            st.dataframe(filtered_refundable_tax_df, hide_index=True)
+
+    else: # if we don't have benefits or tax before refundable credits, display just the main table
         st.dataframe(table_data, hide_index=True)
     
 heat_map_percentage = st.checkbox("Heatmap in Percentages")
