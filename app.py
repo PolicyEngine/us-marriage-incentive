@@ -10,11 +10,15 @@ from policyengine_us.variables.household.income.household.household_tax_before_r
     household_tax_before_refundable_credits as HouseholdTaxBeforeRefundableCredits,
 )
 
+import numpy as np
+
 import pandas as pd
 
 import yaml
 import pkg_resources
 import datetime
+
+import plotly.express as px
 
 
 def load_credits_from_yaml(package, resource_path):
@@ -74,7 +78,8 @@ disability_status  = {
 submit = st.button("Calculate")
 
 
-def create_situation(state_code, head_income, is_disabled, spouse_income=None, children_ages=None, ):
+def create_situation(state_code, head_income,is_disabled, spouse_income=None, children_ages=None):
+
     """
     Create a situation dictionary for the simulation.
     """
@@ -95,7 +100,7 @@ def create_situation(state_code, head_income, is_disabled, spouse_income=None, c
         situation["people"]["your partner"] = {
             "age": {YEAR: DEFAULT_AGE},
             "employment_income": {YEAR: spouse_income},
-            "is_disabled": is_disabled['spouse'] 
+            "is_disabled": is_disabled['spouse']
         }
         members.append("your partner")
     for key, value in children_ages.items():
@@ -124,7 +129,10 @@ def get_programs(
     Retrieve program calculations for the given situation.
     """
     situation = create_situation(
+
+
         state_code, head_employment_income,  disability_status, spouse_employment_income, children_ages
+
     )
     simulation = Simulation(situation=situation)
 
@@ -357,3 +365,224 @@ if submit:
             ),
             hide_index=True,
         )
+
+
+### HEATMAP CALCULATION ###
+
+
+def create_situation_with_axes(
+    state_code,
+    head_employment_income,
+    spouse_employment_income=None,
+    children_ages=None,
+):
+    """
+    Create a situation dictionary for the simulation with axes.
+    """
+    if children_ages is None:
+        children_ages = {}
+
+    situation = {
+        "people": {
+            "you": {
+                "age": {YEAR: DEFAULT_AGE},
+                "employment_income": {YEAR: head_employment_income},
+                "is_disabled": disability_status['head']
+
+            }
+        }
+    }
+    members = ["you"]
+    if spouse_employment_income is not None:
+        situation["people"]["your partner"] = {
+            "age": {YEAR: DEFAULT_AGE},
+            "employment_income": {YEAR: spouse_employment_income},
+            "is_disabled": disability_status['spouse']
+        }
+        members.append("your partner")
+        situation["axes"] = [
+            [
+                {
+                    "name": "employment_income",
+                    "count": 9,
+                    "index": 0,
+                    "min": 0,
+                    "max": 80000,
+                    "period": YEAR,
+                }
+            ],
+            [
+                {
+                    "name": "employment_income",
+                    "count": 9,
+                    "index": 1,
+                    "min": 0,
+                    "max": 80000,
+                    "period": YEAR,
+                }
+            ],
+        ]
+    else:
+        situation["axes"] = [
+            [
+                {
+                    "name": "employment_income",
+                    "count": 9,
+                    "min": 0,
+                    "max": 80000,
+                    "period": YEAR,
+                }
+            ]
+        ]
+    for key, value in children_ages.items():
+        situation["people"][f"child {key}"] = {
+            "age": {YEAR: value},
+            "employment_income": {YEAR: 0},
+        }
+        members.append(f"child {key}")
+    situation["families"] = {"your family": {"members": members}}
+    situation["marital_units"] = {"your marital unit": {"members": members}}
+    situation["tax_units"] = {"your tax unit": {"members": members}}
+    situation["spm_units"] = {"your spm_unit": {"members": members}}
+    situation["households"] = {
+        "your household": {"members": members, "state_name": {YEAR: state_code}}
+    }
+    return situation
+
+
+def create_net_income_situations_with_axes(
+    state_code,  children_ages
+):
+    """
+    Create situations for calculating net income for married and single statuses.
+    """
+    head_employment_income = 80000
+    spouse_employment_income = 80000
+    # Married situation
+    married_situation = create_situation_with_axes(
+        state_code, head_employment_income, spouse_employment_income, children_ages
+    )
+
+    # Single head of household situation
+    single_head_situation = create_situation_with_axes(
+        state_code, head_employment_income, None, children_ages
+    )
+
+    # Single spouse situation (assuming no children for the spouse when single)
+    single_spouse_situation = create_situation_with_axes(
+        state_code, spouse_employment_income, None, {}
+    )
+
+    return married_situation, single_head_situation, single_spouse_situation
+
+
+def calculate_net_income_for_situation(situation):
+    """
+    Calculate the net income for a given situation using the Simulation class.
+    """
+    simulation = Simulation(situation=situation)
+    net_income = simulation.calculate("household_net_income", YEAR)
+    
+    # Ensure the net income is a numpy array and reshape to 9x9
+    net_income_array = np.array(net_income).reshape(9, 9)
+    
+    # Create a DataFrame with columns labeled from 0 to 80000 in increments of 10000
+    columns = [str(i) for i in range(0, 90000, 10000)]
+    df = pd.DataFrame(net_income_array, columns=columns)
+    
+    return df
+
+
+
+def calculate_net_income_grid(state_code, children_ages):
+    """
+    Calculate the net income for a range of incomes for both the head and spouse.
+    """
+    # Create situations
+    married_situation, single_head_situation, single_spouse_situation = create_net_income_situations_with_axes(state_code, children_ages)
+
+    # Calculate net incomes
+    net_income_married_df = calculate_net_income_for_situation(married_situation)
+    net_income_single_head_df = calculate_net_income_for_situation(single_head_situation)
+    net_income_single_spouse_df = calculate_net_income_for_situation(single_spouse_situation)
+
+    # Convert DataFrames to numpy arrays for calculation
+    net_income_married_array = net_income_married_df.to_numpy()
+    net_income_single_head_array = net_income_single_head_df.to_numpy()
+    net_income_single_spouse_array = net_income_single_spouse_df.to_numpy()
+
+    # Calculate the net income delta
+    net_income_combined_singles = np.add.outer(
+        net_income_single_head_array.flatten(), net_income_single_spouse_array.flatten()
+    )
+    net_income_delta = net_income_married_array.flatten()[:, None] - net_income_combined_singles
+
+    # Flatten and reshape the net_income_delta to 9x9
+    net_income_grid = net_income_delta.mean(axis=1).reshape(9, 9)
+    
+    return net_income_grid
+
+
+def create_heatmap_chart(state_code, children_ages):
+    """
+    Create a heatmap for net income levels for married, single head of household, and single spouse situations.
+    """
+    x_values = [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000]
+    y_values = [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000]
+    data = calculate_net_income_grid(state_code, children_ages)
+
+    abs_max = max(abs(np.min(data)), abs(np.max(data)))
+    z_min = -abs_max
+    z_max = abs_max
+    color_scale = [(0, "#616161"), (0.5, "#FFFFFF"), (1, "#2C6496")]
+
+    # Create heatmap
+    fig = px.imshow(
+        data,
+        labels=dict(
+            x="Head Employment Income",
+            y="Spouse Employment Income",
+            color="Net Income Delta",
+        ),
+        x=x_values,
+        y=y_values,
+        zmin=z_min,
+        zmax=z_max,
+        color_continuous_scale=color_scale,
+        origin="lower",
+    )
+
+    fig.update_xaxes(side="bottom")
+    fig.update_layout(
+        xaxis=dict(
+            tickmode="array",
+            tickvals=x_values,
+            ticktext=["{}k".format(int(val / 1000)) for val in x_values],
+            showgrid=True,
+            zeroline=False,
+            title=dict(text="Head Employment Income", standoff=15),
+        ),
+        yaxis=dict(
+            tickmode="array",
+            tickvals=y_values,
+            ticktext=["{}k".format(int(val / 1000)) for val in y_values],
+            showgrid=True,
+            zeroline=False,
+            title=dict(text="Spouse Employment Income", standoff=15),
+            scaleanchor="x",
+            scaleratio=1,
+        ),
+    )
+
+    fig.update_layout(height=600, width=800)
+    # Add header
+    st.markdown(
+        "<h3 style='text-align: center; color: black;'>Net Income Heatmap</h3>",
+        unsafe_allow_html=True,
+    )
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True)
+
+# Usage example in Streamlit app
+if submit:
+    create_heatmap_chart(state_code, children_ages)
