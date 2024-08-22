@@ -5,6 +5,7 @@ from policyengine_us.variables.household.income.household.household_benefits imp
 from policyengine_us.variables.household.income.household.household_tax_before_refundable_credits import household_tax_before_refundable_credits as HouseholdTaxBeforeRefundableCredits
 import pkg_resources
 import yaml
+import copy
 
 # Constants
 YEAR = "2024"
@@ -26,11 +27,12 @@ def create_situation(state_code, head_income, is_disabled, spouse_income=None, c
             "you": {
                 "age": {YEAR: DEFAULT_AGE},
                 "employment_income": {YEAR: head_income},
-                "is_disabled": is_disabled['head'],
+                "is_disabled": is_disabled['head']
             }
         }
     }
     members = ["you"]
+    marital_unit_members = ["you"]
     if spouse_income is not None:
         situation["people"]["your partner"] = {
             "age": {YEAR: DEFAULT_AGE},
@@ -38,14 +40,22 @@ def create_situation(state_code, head_income, is_disabled, spouse_income=None, c
             "is_disabled": is_disabled['spouse']
         }
         members.append("your partner")
-    for key, value in children_ages.items():
-        situation["people"][f"child {key}"] = {
-            "age": {YEAR: value},
-            "employment_income": {YEAR: 0},
-        }
-        members.append(f"child {key}")
+        marital_unit_members.append("your partner")
+    if children_ages:
+        for key, value in children_ages.items():
+            situation["people"][f"child_{key}"] = {
+                "age": value,
+                "employment_income": {YEAR: 0},
+                "is_disabled": is_disabled[f'child_{key}']
+            }
+            members.append(f"child_{key}")
+    
     situation["families"] = {"your family": {"members": members}}
-    situation["marital_units"] = {"your marital unit": {"members": members}}
+    situation["marital_units"] = {"your marital unit": {"members": marital_unit_members}}
+    # add marrital units for children
+    for key, value in children_ages.items():
+        situation["marital_units"][f"child_{key}'s marital unit"] = {"marital_unit_id": {YEAR: int(key)},"members": [f"child_{key}"]}
+
     situation["tax_units"] = {"your tax unit": {"members": members}}
     situation["spm_units"] = {"your spm_unit": {"members": members}}
     situation["households"] = {
@@ -106,7 +116,10 @@ def get_programs(state_code, head_employment_income, disability_status, spouse_e
 def get_categorized_programs(state_code, head_employment_income, spouse_employment_income, children_ages, disability_status):
     programs_married = get_programs(state_code, head_employment_income, disability_status, spouse_employment_income, children_ages)
     programs_head_if_single_with_children = get_programs(state_code, head_employment_income, disability_status, None, children_ages)
-    programs_spouse_if_single_without_children = get_programs(state_code, spouse_employment_income, disability_status, None, {})
+    disability_status_spouse_as_head = copy.deepcopy(disability_status)
+    disability_status_spouse_as_head['head'] = disability_status['spouse']
+    del disability_status_spouse_as_head['spouse']
+    programs_spouse_if_single_without_children = get_programs(state_code, spouse_employment_income, disability_status_spouse_as_head, None, {})
     return [
         programs_married,
         programs_head_if_single_with_children,
