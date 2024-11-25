@@ -8,7 +8,14 @@ from policyengine_us import Simulation
 YEAR = "2024"
 DEFAULT_AGE = 40
 
-def create_situation_with_axes(state_code, head_employment_income, spouse_employment_income=None, children_ages=None, disability_status=None):
+
+def create_situation_with_axes(
+    state_code,
+    head_employment_income,
+    spouse_employment_income=None,
+    children_ages=None,
+    disability_status=None,
+):
     if children_ages is None:
         children_ages = {}
 
@@ -17,7 +24,9 @@ def create_situation_with_axes(state_code, head_employment_income, spouse_employ
             "you": {
                 "age": {YEAR: DEFAULT_AGE},
                 "employment_income": {YEAR: head_employment_income},
-                "is_disabled": disability_status['head'] if disability_status else False
+                "is_disabled": (
+                    disability_status["head"] if disability_status else False
+                ),
             }
         }
     }
@@ -26,7 +35,7 @@ def create_situation_with_axes(state_code, head_employment_income, spouse_employ
         situation["people"]["your partner"] = {
             "age": {YEAR: DEFAULT_AGE},
             "employment_income": {YEAR: spouse_employment_income},
-            "is_disabled": disability_status['spouse'] if disability_status else False
+            "is_disabled": disability_status["spouse"] if disability_status else False,
         }
         members.append("your partner")
         situation["axes"] = [
@@ -67,7 +76,7 @@ def create_situation_with_axes(state_code, head_employment_income, spouse_employ
         situation["people"][f"child {key}"] = {
             "age": {YEAR: value},
             "employment_income": {YEAR: 0},
-            "is_disabled": disability_status.get(f'child_{key}', False)
+            "is_disabled": disability_status.get(f"child_{key}", False),
         }
         members.append(f"child {key}")
     situation["families"] = {"your family": {"members": members}}
@@ -79,14 +88,28 @@ def create_situation_with_axes(state_code, head_employment_income, spouse_employ
     }
     return situation
 
-def create_net_income_situations_with_axes(state_code, children_ages, disability_status):
+
+def create_net_income_situations_with_axes(
+    state_code, children_ages, disability_status
+):
     head_employment_income = 80000
     spouse_employment_income = 80000
-    married_situation = create_situation_with_axes(state_code, head_employment_income, spouse_employment_income, children_ages, disability_status)
-    single_head_situation = create_situation_with_axes(state_code, head_employment_income, None, children_ages, disability_status)
-    single_spouse_situation = create_situation_with_axes(state_code, spouse_employment_income, None, {}, disability_status)
+    married_situation = create_situation_with_axes(
+        state_code,
+        head_employment_income,
+        spouse_employment_income,
+        children_ages,
+        disability_status,
+    )
+    single_head_situation = create_situation_with_axes(
+        state_code, head_employment_income, None, children_ages, disability_status
+    )
+    single_spouse_situation = create_situation_with_axes(
+        state_code, spouse_employment_income, None, {}, disability_status
+    )
 
     return married_situation, single_head_situation, single_spouse_situation
+
 
 def calculate_net_income_for_situation(situation):
     def calculate_and_process(name):
@@ -105,24 +128,39 @@ def calculate_net_income_for_situation(situation):
     results = {
         "Net Income": calculate_and_process("household_net_income"),
         "Benefits": calculate_and_process("household_benefits"),
-        "Refundable Tax Credits": calculate_and_process("household_refundable_tax_credits"),
-        "Tax Before Refundable Credits": calculate_and_process("household_tax_before_refundable_credits")
+        "Refundable Tax Credits": calculate_and_process(
+            "household_refundable_tax_credits"
+        ),
+        "Tax Before Refundable Credits": calculate_and_process(
+            "household_tax_before_refundable_credits"
+        ),
     }
 
     columns = [str(i) for i in range(0, 90000, 10000)]
-    data_frames = {key: pd.DataFrame(value, columns=columns[:value.shape[1]]) for key, value in results.items()}
+    data_frames = {
+        key: pd.DataFrame(value, columns=columns[: value.shape[1]])
+        for key, value in results.items()
+    }
 
     combined_df = pd.concat(data_frames, axis=1, keys=data_frames.keys())
     return combined_df
 
+
 def to_2d_array(array):
     return np.expand_dims(array, axis=1) if array.ndim == 1 else array
 
+
 def get_net_income_array(situations, tab):
-    return [to_2d_array(calculate_net_income_for_situation(s)[(tab,)].to_numpy()) for s in situations]
+    return [
+        to_2d_array(calculate_net_income_for_situation(s)[(tab,)].to_numpy())
+        for s in situations
+    ]
+
 
 def calculate_net_income_grid(state_code, children_ages, tab, disability_status):
-    situations = create_net_income_situations_with_axes(state_code, children_ages, disability_status)
+    situations = create_net_income_situations_with_axes(
+        state_code, children_ages, disability_status
+    )
     net_incomes = get_net_income_array(situations, tab)
 
     net_income_married_array = net_incomes[0].reshape(9, 9)
@@ -137,6 +175,7 @@ def calculate_net_income_grid(state_code, children_ages, tab, disability_status)
     columns = calculate_net_income_for_situation(situations[0])[(tab,)].columns
     index = calculate_net_income_for_situation(situations[0]).index
     return pd.DataFrame(net_income_delta, columns=columns, index=index)
+
 
 def create_heatmap_chart(state_code, children_ages, tab, disability_status):
     st.markdown("### Situation with varying head and spouse income:")
@@ -153,7 +192,11 @@ def create_heatmap_chart(state_code, children_ages, tab, disability_status):
 
     fig = px.imshow(
         data,
-        labels={"x": "Head Employment Income", "y": "Spouse Employment Income", "color": "Net Change"},
+        labels={
+            "x": "Head Employment Income",
+            "y": "Spouse Employment Income",
+            "color": "Net Change",
+        },
         x=x_values,
         y=y_values,
         zmin=z_min,
