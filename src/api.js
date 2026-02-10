@@ -1,5 +1,6 @@
 const API_BASE = "https://api.policyengine.org";
-const YEAR = "2024";
+export const DEFAULT_YEAR = "2026";
+export const AVAILABLE_YEARS = ["2024", "2025", "2026", "2027", "2028"];
 const DEFAULT_AGE = 40;
 
 // Variables organized by entity level (verified against the API)
@@ -30,23 +31,24 @@ export function createSituation(
   disabilityStatus,
   spouseIncome = null,
   children = [],
+  year = DEFAULT_YEAR,
 ) {
   const members = ["you"];
   const maritalUnitMembers = ["you"];
 
   const people = {
     you: {
-      age: { [YEAR]: DEFAULT_AGE },
-      employment_income: { [YEAR]: headIncome },
-      is_disabled: { [YEAR]: disabilityStatus.head || false },
+      age: { [year]: DEFAULT_AGE },
+      employment_income: { [year]: headIncome },
+      is_disabled: { [year]: disabilityStatus.head || false },
     },
   };
 
   if (spouseIncome !== null) {
     people["your partner"] = {
-      age: { [YEAR]: DEFAULT_AGE },
-      employment_income: { [YEAR]: spouseIncome },
-      is_disabled: { [YEAR]: disabilityStatus.spouse || false },
+      age: { [year]: DEFAULT_AGE },
+      employment_income: { [year]: spouseIncome },
+      is_disabled: { [year]: disabilityStatus.spouse || false },
     };
     members.push("your partner");
     maritalUnitMembers.push("your partner");
@@ -59,13 +61,13 @@ export function createSituation(
   children.forEach((child, i) => {
     const childId = `child_${i + 1}`;
     people[childId] = {
-      age: { [YEAR]: child.age },
-      employment_income: { [YEAR]: 0 },
-      is_disabled: { [YEAR]: child.isDisabled || false },
+      age: { [year]: child.age },
+      employment_income: { [year]: 0 },
+      is_disabled: { [year]: child.isDisabled || false },
     };
     members.push(childId);
     maritalUnits[`${childId} marital unit`] = {
-      marital_unit_id: { [YEAR]: i + 1 },
+      marital_unit_id: { [year]: i + 1 },
       members: [childId],
     };
   });
@@ -79,38 +81,34 @@ export function createSituation(
     households: {
       "your household": {
         members: [...members],
-        state_name: { [YEAR]: stateCode },
+        state_name: { [year]: stateCode },
       },
     },
   };
 }
 
-function addOutputVariables(situation) {
-  // Household-level aggregates
+function addOutputVariables(situation, year) {
   const hh = situation.households["your household"];
-  hh.household_net_income = { [YEAR]: null };
-  hh.household_benefits = { [YEAR]: null };
-  hh.household_refundable_tax_credits = { [YEAR]: null };
-  hh.household_tax_before_refundable_credits = { [YEAR]: null };
+  hh.household_net_income = { [year]: null };
+  hh.household_benefits = { [year]: null };
+  hh.household_refundable_tax_credits = { [year]: null };
+  hh.household_tax_before_refundable_credits = { [year]: null };
 
-  // Person-level variables (benefits + taxes)
   for (const personName of Object.keys(situation.people)) {
     const person = situation.people[personName];
     for (const v of [...PERSON_BENEFITS, ...PERSON_TAXES]) {
-      person[v] = { [YEAR]: null };
+      person[v] = { [year]: null };
     }
   }
 
-  // SPM-unit benefits
   const spm = situation.spm_units["your spm_unit"];
   for (const v of SPM_UNIT_BENEFITS) {
-    spm[v] = { [YEAR]: null };
+    spm[v] = { [year]: null };
   }
 
-  // Tax-unit credits and taxes
   const tu = situation.tax_units["your tax unit"];
   for (const v of [...TAX_UNIT_CREDITS, ...TAX_UNIT_TAXES]) {
-    tu[v] = { [YEAR]: null };
+    tu[v] = { [year]: null };
   }
 
   return situation;
@@ -135,9 +133,9 @@ async function callApi(situation) {
   return data.result || data;
 }
 
-function extractVal(result, entity, name, variable) {
+function extractVal(result, entity, name, variable, year) {
   try {
-    const val = result?.[entity]?.[name]?.[variable]?.[YEAR];
+    const val = result?.[entity]?.[name]?.[variable]?.[year];
     if (val == null) return 0;
     if (Array.isArray(val)) return val[0];
     return val;
@@ -146,9 +144,9 @@ function extractVal(result, entity, name, variable) {
   }
 }
 
-function extractArray(result, entity, name, variable) {
+function extractArray(result, entity, name, variable, year) {
   try {
-    const val = result?.[entity]?.[name]?.[variable]?.[YEAR];
+    const val = result?.[entity]?.[name]?.[variable]?.[year];
     if (Array.isArray(val)) return val;
     return val != null ? [val] : [];
   } catch {
@@ -156,30 +154,29 @@ function extractArray(result, entity, name, variable) {
   }
 }
 
-function extractDict(result, entity, name, vars) {
+function extractDict(result, entity, name, vars, year) {
   const dict = {};
   for (const v of vars) {
-    dict[v] = extractVal(result, entity, name, v);
+    dict[v] = extractVal(result, entity, name, v, year);
   }
   return dict;
 }
 
-// Sum a person-level variable across all people in the household
-function sumPersonVar(result, variable) {
+function sumPersonVar(result, variable, year) {
   const people = result?.people || {};
   let total = 0;
   for (const person of Object.values(people)) {
-    const val = person?.[variable]?.[YEAR];
+    const val = person?.[variable]?.[year];
     if (typeof val === "number") total += val;
     else if (Array.isArray(val)) total += val[0] || 0;
   }
   return total;
 }
 
-function extractPersonDict(result, vars) {
+function extractPersonDict(result, vars, year) {
   const dict = {};
   for (const v of vars) {
-    dict[v] = sumPersonVar(result, v);
+    dict[v] = sumPersonVar(result, v, year);
   }
   return dict;
 }
@@ -190,6 +187,7 @@ export async function getPrograms(
   disabilityStatus,
   spouseIncome = null,
   children = [],
+  year = DEFAULT_YEAR,
 ) {
   const situation = createSituation(
     stateCode,
@@ -197,29 +195,30 @@ export async function getPrograms(
     disabilityStatus,
     spouseIncome,
     children,
+    year,
   );
-  addOutputVariables(situation);
+  addOutputVariables(situation, year);
 
   const result = await callApi(situation);
 
-  // Merge spm_unit + person benefits
   const spmBenefits = extractDict(
     result,
     "spm_units",
     "your spm_unit",
     SPM_UNIT_BENEFITS,
+    year,
   );
-  const personBenefits = extractPersonDict(result, PERSON_BENEFITS);
+  const personBenefits = extractPersonDict(result, PERSON_BENEFITS, year);
   const benefits = { ...spmBenefits, ...personBenefits };
 
-  // Merge tax_unit + person taxes
   const tuTaxes = extractDict(
     result,
     "tax_units",
     "your tax unit",
     TAX_UNIT_TAXES,
+    year,
   );
-  const personTaxes = extractPersonDict(result, PERSON_TAXES);
+  const personTaxes = extractPersonDict(result, PERSON_TAXES, year);
   const taxes = { ...tuTaxes, ...personTaxes };
 
   return {
@@ -229,24 +228,28 @@ export async function getPrograms(
         "households",
         "your household",
         "household_net_income",
+        year,
       ),
       householdBenefits: extractVal(
         result,
         "households",
         "your household",
         "household_benefits",
+        year,
       ),
       householdRefundableCredits: extractVal(
         result,
         "households",
         "your household",
         "household_refundable_tax_credits",
+        year,
       ),
       householdTaxBeforeCredits: extractVal(
         result,
         "households",
         "your household",
         "household_tax_before_refundable_credits",
+        year,
       ),
     },
     benefits,
@@ -255,6 +258,7 @@ export async function getPrograms(
       "tax_units",
       "your tax unit",
       TAX_UNIT_CREDITS,
+      year,
     ),
     taxes,
   };
@@ -266,6 +270,7 @@ export async function getCategorizedPrograms(
   spouseIncome,
   children,
   disabilityStatus,
+  year = DEFAULT_YEAR,
 ) {
   const [married, headSingle, spouseSingle] = await Promise.all([
     getPrograms(
@@ -274,14 +279,16 @@ export async function getCategorizedPrograms(
       disabilityStatus,
       spouseIncome,
       children,
+      year,
     ),
-    getPrograms(stateCode, headIncome, disabilityStatus, null, children),
+    getPrograms(stateCode, headIncome, disabilityStatus, null, children, year),
     getPrograms(
       stateCode,
       spouseIncome,
       { head: disabilityStatus.spouse || false },
       null,
       [],
+      year,
     ),
   ]);
 
@@ -289,7 +296,12 @@ export async function getCategorizedPrograms(
 }
 
 // Heatmap API calls
-export async function getHeatmapData(stateCode, children, disabilityStatus) {
+export async function getHeatmapData(
+  stateCode,
+  children,
+  disabilityStatus,
+  year = DEFAULT_YEAR,
+) {
   const maxIncome = 80000;
   const count = 9;
 
@@ -300,14 +312,14 @@ export async function getHeatmapData(stateCode, children, disabilityStatus) {
       disability,
       includeSpouse ? maxIncome : null,
       childrenList,
+      year,
     );
 
-    // Only request household-level outputs for heatmap
     const hh = situation.households["your household"];
-    hh.household_net_income = { [YEAR]: null };
-    hh.household_benefits = { [YEAR]: null };
-    hh.household_refundable_tax_credits = { [YEAR]: null };
-    hh.household_tax_before_refundable_credits = { [YEAR]: null };
+    hh.household_net_income = { [year]: null };
+    hh.household_benefits = { [year]: null };
+    hh.household_refundable_tax_credits = { [year]: null };
+    hh.household_tax_before_refundable_credits = { [year]: null };
 
     if (includeSpouse) {
       situation.axes = [
@@ -318,7 +330,7 @@ export async function getHeatmapData(stateCode, children, disabilityStatus) {
             index: 0,
             min: 0,
             max: maxIncome,
-            period: YEAR,
+            period: year,
           },
         ],
         [
@@ -328,7 +340,7 @@ export async function getHeatmapData(stateCode, children, disabilityStatus) {
             index: 1,
             min: 0,
             max: maxIncome,
-            period: YEAR,
+            period: year,
           },
         ],
       ];
@@ -340,7 +352,7 @@ export async function getHeatmapData(stateCode, children, disabilityStatus) {
             count,
             min: 0,
             max: maxIncome,
-            period: YEAR,
+            period: year,
           },
         ],
       ];
@@ -392,32 +404,32 @@ export async function getHeatmapData(stateCode, children, disabilityStatus) {
       "households",
       "your household",
       varName,
+      year,
     );
     const headFlat = extractArray(
       headResult,
       "households",
       "your household",
       varName,
+      year,
     );
     const spouseFlat = extractArray(
       spouseResult,
       "households",
       "your household",
       varName,
+      year,
     );
 
-    // Reshape married to 9x9
     const marriedGrid = [];
     for (let i = 0; i < count; i++) {
       marriedGrid.push(marriedFlat.slice(i * count, (i + 1) * count));
     }
 
-    // Compute delta: married - (head_single + spouse_single)
     const deltaGrid = marriedGrid.map((row, i) =>
       row.map((val, j) => val - (headFlat[i] + spouseFlat[j])),
     );
 
-    // For taxes, negate the delta (positive tax = penalty)
     if (varName === "household_tax_before_refundable_credits") {
       grids[tabNames[v]] = deltaGrid.map((row) => row.map((val) => -val));
     } else {

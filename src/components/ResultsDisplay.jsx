@@ -1,5 +1,5 @@
 import React, { useState, Suspense, lazy } from "react";
-import { computeTableData } from "../utils";
+import { computeTableData, formatCurrency } from "../utils";
 
 const Heatmap = lazy(() => import("./Heatmap"));
 
@@ -71,6 +71,28 @@ function DataTable({ rows }) {
   );
 }
 
+function HeadlineBanner({ results }) {
+  const { married, headSingle, spouseSingle } = results;
+  const marriedNet = married.aggregates.householdNetIncome;
+  const separateNet =
+    headSingle.aggregates.householdNetIncome +
+    spouseSingle.aggregates.householdNetIncome;
+  const delta = marriedNet - separateNet;
+
+  const isBonus = delta > 0;
+  const isPenalty = delta < 0;
+  const label = isBonus ? "Marriage bonus" : isPenalty ? "Marriage penalty" : "No marriage incentive effect";
+
+  return (
+    <div className={`headline-banner ${isBonus ? "bonus" : isPenalty ? "penalty" : ""}`}>
+      <span className="headline-label">{label}</span>
+      {delta !== 0 && (
+        <span className="headline-amount">{formatCurrency(Math.abs(delta))}/yr</span>
+      )}
+    </div>
+  );
+}
+
 export default function ResultsDisplay({
   results,
   heatmapData,
@@ -86,6 +108,7 @@ export default function ResultsDisplay({
 
   return (
     <div className="results">
+      <HeadlineBanner results={results} />
       <div className="tab-bar">
         {TABS.map((tab) => (
           <button

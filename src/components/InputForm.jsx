@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { US_STATES } from "../utils";
+import { AVAILABLE_YEARS, DEFAULT_YEAR } from "../api";
 
 export default function InputForm({ onCalculate, loading, initialValues }) {
   const iv = initialValues || {};
@@ -13,6 +14,7 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
     iv.disabilityStatus?.spouse || false,
   );
   const [children, setChildren] = useState(iv.children || []);
+  const [year, setYear] = useState(iv.year || DEFAULT_YEAR);
 
   function addChild() {
     setChildren([...children, { age: 0, isDisabled: false }]);
@@ -39,6 +41,7 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
         head: headDisabled,
         spouse: spouseDisabled,
       },
+      year,
     });
   }
 
@@ -54,6 +57,16 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             {US_STATES.map((s) => (
               <option key={s.code} value={s.code}>
                 {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Year</label>
+          <select value={year} onChange={(e) => setYear(e.target.value)}>
+            {AVAILABLE_YEARS.map((y) => (
+              <option key={y} value={y}>
+                {y}
               </option>
             ))}
           </select>

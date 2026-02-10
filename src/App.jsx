@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import InputForm from "./components/InputForm";
 import ResultsDisplay from "./components/ResultsDisplay";
-import { getCategorizedPrograms, getHeatmapData } from "./api";
+import { getCategorizedPrograms, getHeatmapData, DEFAULT_YEAR } from "./api";
 
 // URL state helpers
 function encodeToHash(formData) {
@@ -18,6 +18,9 @@ function encodeToHash(formData) {
         .map((c) => `${c.age}:${c.isDisabled ? 1 : 0}`)
         .join(","),
     );
+  }
+  if (formData.year && formData.year !== DEFAULT_YEAR) {
+    p.set("year", formData.year);
   }
   return p.toString();
 }
@@ -46,6 +49,7 @@ function decodeFromHash() {
         spouse: p.get("sd") === "1",
       },
       children,
+      year: p.get("year") || DEFAULT_YEAR,
     };
   } catch {
     return null;
@@ -68,8 +72,14 @@ export default function App() {
     // Update URL
     window.history.replaceState(null, "", `#${encodeToHash(data)}`);
 
-    const { stateCode, headIncome, spouseIncome, children, disabilityStatus } =
-      data;
+    const {
+      stateCode,
+      headIncome,
+      spouseIncome,
+      children,
+      disabilityStatus,
+      year,
+    } = data;
 
     setLoading(true);
     setError(null);
@@ -83,6 +93,7 @@ export default function App() {
         spouseIncome,
         children,
         disabilityStatus,
+        year,
       );
       setResults(result);
       setLoading(false);
@@ -94,6 +105,7 @@ export default function App() {
           stateCode,
           children,
           disabilityStatus,
+          year,
         );
         setHeatmapData(heatmap);
       } catch (e) {

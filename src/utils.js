@@ -62,7 +62,19 @@ export function formatPercent(value) {
   return (value * 100).toFixed(1) + "%";
 }
 
+const ACRONYMS = {
+  eitc: "EITC",
+  snap: "SNAP",
+  tanf: "TANF",
+  wic: "WIC",
+  ssi: "SSI",
+  acp: "ACP",
+  ctc: "CTC",
+  cdcc: "CDCC",
+};
+
 export function formatProgramName(name) {
+  if (ACRONYMS[name]) return ACRONYMS[name];
   return name
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
