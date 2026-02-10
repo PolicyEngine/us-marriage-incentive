@@ -288,6 +288,43 @@ body {
   white-space: nowrap;
 }
 
+.program-name-tip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted #9CA3AF;
+}
+
+.program-name-tip .tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 280px;
+  padding: 0.6rem 0.75rem;
+  background: #1F2937;
+  color: #F9FAFB;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.4;
+  border-radius: 6px;
+  z-index: 10;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.program-name-tip .tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 16px;
+  border: 6px solid transparent;
+  border-top-color: #1F2937;
+}
+
+.program-name-tip:hover .tooltip {
+  display: block;
+}
+
 .data-table tr:last-child td {
   border-bottom: none;
 }

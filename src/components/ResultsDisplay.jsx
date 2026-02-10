@@ -1,5 +1,5 @@
 import React, { useState, Suspense, lazy } from "react";
-import { computeTableData, formatCurrency } from "../utils";
+import { computeTableData, formatCurrency, PROGRAM_DESCRIPTIONS } from "../utils";
 
 const Heatmap = lazy(() => import("./Heatmap"));
 
@@ -38,7 +38,16 @@ function DataTable({ rows }) {
         <tbody>
           {rows.map((row, i) => (
             <tr key={i}>
-              <td>{row.program}</td>
+              <td>
+                {PROGRAM_DESCRIPTIONS[row.program] ? (
+                  <span className="program-name-tip">
+                    {row.program}
+                    <span className="tooltip">{PROGRAM_DESCRIPTIONS[row.program]}</span>
+                  </span>
+                ) : (
+                  row.program
+                )}
+              </td>
               <td>{row.notMarried}</td>
               <td>{row.married}</td>
               <td

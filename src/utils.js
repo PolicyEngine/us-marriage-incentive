@@ -73,6 +73,47 @@ const ACRONYMS = {
   cdcc: "CDCC",
 };
 
+export const PROGRAM_DESCRIPTIONS = {
+  // Summary
+  "Net Income":
+    "Total income after taxes, credits, and benefits. The bottom line of how marriage affects your finances.",
+  Benefits:
+    "Government assistance programs like SNAP, TANF, and Medicaid. Eligibility often depends on combined household income.",
+  "Refundable Tax Credits":
+    "Tax credits that can result in a payment even if you owe no tax. Includes EITC, CTC, and premium tax credits.",
+  "Taxes Before Refundable Credits":
+    "Federal income tax, Social Security, and Medicare taxes before any refundable credits are applied.",
+  // Benefits
+  SNAP: "Supplemental Nutrition Assistance Program. Benefits are based on household size and income; marriage combines both incomes.",
+  TANF: "Temporary Assistance for Needy Families. Cash assistance with income limits that change when households merge.",
+  WIC: "Special Supplemental Nutrition Program for Women, Infants, and Children. Eligibility based on household income.",
+  SSI: "Supplemental Security Income. Married couples receive less than two individuals would separately.",
+  Medicaid:
+    "Health coverage with income thresholds based on household size. Marriage can change eligibility.",
+  "Free School Meals":
+    "National School Lunch Program free meals. Eligibility based on household income relative to the poverty line.",
+  "Reduced Price School Meals":
+    "National School Lunch Program reduced-price meals. Based on household income between 130%–185% of poverty.",
+  Lifeline:
+    "FCC program providing discounted phone or internet service to low-income households.",
+  ACP: "Affordable Connectivity Program. Broadband subsidy based on household income or program participation.",
+  // Credits
+  EITC: "Earned Income Tax Credit. Phase-out thresholds are higher for married filers, but combined income can still reduce the credit.",
+  CTC: "Child Tax Credit. Income phase-outs differ by filing status; marriage can push income above thresholds.",
+  "Premium Tax Credit":
+    "ACA marketplace health insurance subsidy. Based on household income relative to the poverty line.",
+  CDCC: "Child and Dependent Care Credit. Available to working parents; marriage changes eligible expenses and income limits.",
+  // Taxes
+  "Income Tax Before Refundable Credits":
+    "Federal income tax calculated on combined income. Tax brackets for married filers are not exactly double single brackets.",
+  "Self Employment Tax":
+    "Social Security and Medicare taxes on self-employment income. Calculated per person, unaffected by marriage.",
+  "Employee Social Security Tax":
+    "6.2% tax on wages up to the annual cap. Calculated per worker, generally unaffected by marital status.",
+  "Employee Medicare Tax":
+    "1.45% tax on all wages (plus 0.9% above $200k/$250k married). The additional Medicare tax threshold changes with marriage.",
+};
+
 export function formatProgramName(name) {
   if (ACRONYMS[name]) return ACRONYMS[name];
   return name
