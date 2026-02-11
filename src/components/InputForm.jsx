@@ -5,19 +5,30 @@ import { AVAILABLE_YEARS, DEFAULT_YEAR } from "../api";
 export default function InputForm({ onCalculate, loading, initialValues }) {
   const iv = initialValues || {};
   const [stateCode, setStateCode] = useState(iv.stateCode || "CA");
-  const [headIncome, setHeadIncome] = useState(iv.headIncome ?? 0);
-  const [spouseIncome, setSpouseIncome] = useState(iv.spouseIncome ?? 0);
+  const [headIncome, setHeadIncome] = useState(
+    iv.headIncome ? String(iv.headIncome) : "",
+  );
+  const [spouseIncome, setSpouseIncome] = useState(
+    iv.spouseIncome ? String(iv.spouseIncome) : "",
+  );
   const [headDisabled, setHeadDisabled] = useState(
     iv.disabilityStatus?.head || false,
   );
   const [spouseDisabled, setSpouseDisabled] = useState(
     iv.disabilityStatus?.spouse || false,
   );
-  const [children, setChildren] = useState(iv.children || []);
+  const [children, setChildren] = useState(
+    (iv.children || []).map((c) => ({ ...c, age: String(c.age) })),
+  );
   const [year, setYear] = useState(iv.year || DEFAULT_YEAR);
 
+  function toNum(str) {
+    const n = Number(str);
+    return Number.isNaN(n) ? 0 : n;
+  }
+
   function addChild() {
-    setChildren([...children, { age: 0, isDisabled: false }]);
+    setChildren([...children, { age: "", isDisabled: false }]);
   }
 
   function removeChild() {
@@ -34,19 +45,15 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
     e.preventDefault();
     onCalculate({
       stateCode,
-      headIncome,
-      spouseIncome,
-      children,
+      headIncome: toNum(headIncome),
+      spouseIncome: toNum(spouseIncome),
+      children: children.map((c) => ({ ...c, age: toNum(c.age) })),
       disabilityStatus: {
         head: headDisabled,
         spouse: spouseDisabled,
       },
       year,
     });
-  }
-
-  function selectOnFocus(e) {
-    e.target.select();
   }
 
   return (
@@ -81,9 +88,9 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             type="number"
             min="0"
             step="1000"
+            placeholder="0"
             value={headIncome}
-            onFocus={selectOnFocus}
-            onChange={(e) => setHeadIncome(Number(e.target.value))}
+            onChange={(e) => setHeadIncome(e.target.value)}
           />
         </div>
         <div className="form-group">
@@ -92,9 +99,9 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             type="number"
             min="0"
             step="1000"
+            placeholder="0"
             value={spouseIncome}
-            onFocus={selectOnFocus}
-            onChange={(e) => setSpouseIncome(Number(e.target.value))}
+            onChange={(e) => setSpouseIncome(e.target.value)}
           />
         </div>
       </div>
@@ -152,9 +159,9 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
               type="number"
               min="0"
               max="18"
+              placeholder="0"
               value={child.age}
-              onFocus={selectOnFocus}
-              onChange={(e) => updateChild(i, "age", Number(e.target.value))}
+              onChange={(e) => updateChild(i, "age", e.target.value)}
             />
             <label className="checkbox-label">
               <input
