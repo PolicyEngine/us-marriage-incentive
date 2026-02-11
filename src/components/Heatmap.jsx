@@ -1,7 +1,7 @@
 import React from "react";
 import Plot from "react-plotly.js";
 
-const TICK_LABELS = Array.from({ length: 9 }, (_, i) => `$${i * 10}k`);
+const TICK_LABELS = Array.from({ length: 17 }, (_, i) => `$${i * 5}k`);
 
 const TEAL_SCALE = [
   [0, "#1D4044"],
@@ -38,9 +38,9 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
 
   // "You are here" marker — snap to nearest grid cell
   const markerX =
-    TICK_LABELS[Math.min(8, Math.max(0, Math.round(headIncome / 10000)))];
+    TICK_LABELS[Math.min(16, Math.max(0, Math.round(headIncome / 5000)))];
   const markerY =
-    TICK_LABELS[Math.min(8, Math.max(0, Math.round(spouseIncome / 10000)))];
+    TICK_LABELS[Math.min(16, Math.max(0, Math.round(spouseIncome / 5000)))];
 
   return (
     <div className="heatmap-section">

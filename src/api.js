@@ -303,7 +303,7 @@ export async function getHeatmapData(
   year = DEFAULT_YEAR,
 ) {
   const maxIncome = 80000;
-  const count = 9;
+  const count = 17;
 
   function buildHeatmapSituation(includeSpouse, childrenList, disability) {
     const situation = createSituation(
