@@ -45,6 +45,10 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
     });
   }
 
+  function selectOnFocus(e) {
+    e.target.select();
+  }
+
   return (
     <form className="input-form" onSubmit={handleSubmit}>
       <div className="form-row">
@@ -78,6 +82,7 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             min="0"
             step="1000"
             value={headIncome}
+            onFocus={selectOnFocus}
             onChange={(e) => setHeadIncome(Number(e.target.value))}
           />
         </div>
@@ -88,6 +93,7 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             min="0"
             step="1000"
             value={spouseIncome}
+            onFocus={selectOnFocus}
             onChange={(e) => setSpouseIncome(Number(e.target.value))}
           />
         </div>
@@ -147,6 +153,7 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
               min="0"
               max="18"
               value={child.age}
+              onFocus={selectOnFocus}
               onChange={(e) => updateChild(i, "age", Number(e.target.value))}
             />
             <label className="checkbox-label">

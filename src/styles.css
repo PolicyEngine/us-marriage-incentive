@@ -201,6 +201,12 @@ body {
   color: #9B2C2C;
 }
 
+.headline-text {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .headline-amount {
   font-size: 1.25rem;
   font-weight: 700;
@@ -213,6 +219,23 @@ body {
 
 .headline-banner.penalty .headline-amount {
   color: #9B2C2C;
+}
+
+.share-btn {
+  background: none;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  color: #5A5A5A;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.share-btn:hover {
+  border-color: #319795;
+  color: #2C7A7B;
 }
 
 /* Results */
@@ -451,9 +474,12 @@ body {
   }
 
   .headline-banner {
+    padding: 0.75rem 1rem;
+  }
+
+  .headline-text {
     flex-direction: column;
     gap: 0.25rem;
     align-items: flex-start;
-    padding: 0.75rem 1rem;
   }
 }

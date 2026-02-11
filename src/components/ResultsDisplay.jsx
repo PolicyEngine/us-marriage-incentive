@@ -81,6 +81,7 @@ function DataTable({ rows }) {
 }
 
 function HeadlineBanner({ results }) {
+  const [copied, setCopied] = useState(false);
   const { married, headSingle, spouseSingle } = results;
   const marriedNet = married.aggregates.householdNetIncome;
   const separateNet =
@@ -92,12 +93,24 @@ function HeadlineBanner({ results }) {
   const isPenalty = delta < 0;
   const label = isBonus ? "Marriage bonus" : isPenalty ? "Marriage penalty" : "No marriage incentive effect";
 
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className={`headline-banner ${isBonus ? "bonus" : isPenalty ? "penalty" : ""}`}>
-      <span className="headline-label">{label}</span>
-      {delta !== 0 && (
-        <span className="headline-amount">{formatCurrency(Math.abs(delta))}/yr</span>
-      )}
+      <div className="headline-text">
+        <span className="headline-label">{label}</span>
+        {delta !== 0 && (
+          <span className="headline-amount">{formatCurrency(Math.abs(delta))}/yr</span>
+        )}
+      </div>
+      <button className="share-btn" onClick={handleShare} title="Copy link to clipboard">
+        {copied ? "Copied!" : "Share"}
+      </button>
     </div>
   );
 }
