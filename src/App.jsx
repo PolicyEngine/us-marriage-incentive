@@ -68,6 +68,23 @@ export default function App() {
   const initialValues = useRef(decodeFromHash());
   const didAutoCalc = useRef(false);
 
+  // Swap favicon for valentine mode
+  useEffect(() => {
+    const link = document.querySelector('link[rel="icon"]');
+    if (!link) return;
+    if (valentine) {
+      link.href = "data:image/svg+xml," + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">'
+        + '<circle cx="24" cy="32" r="14" stroke="#DB2777" stroke-width="4" fill="none"/>'
+        + '<circle cx="40" cy="32" r="14" stroke="#BE185D" stroke-width="4" fill="none"/>'
+        + '<text x="32" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#EC4899">$</text>'
+        + '</svg>'
+      );
+    } else {
+      link.href = "/favicon.svg";
+    }
+  }, [valentine]);
+
   // Valentine mode toggle on "v" key (ignore when typing in inputs)
   useEffect(() => {
     function handleKey(e) {
