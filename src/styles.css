@@ -483,3 +483,223 @@ body {
     align-items: flex-start;
   }
 }
+
+/* ============================================
+   Valentine's Day Mode (toggle with "v" key)
+   ============================================ */
+
+/* Floating hearts background */
+.hearts-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.hearts-bg::before,
+.hearts-bg::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f9a8d4' opacity='0.35'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
+  background-size: 20px 20px;
+  animation: floatHearts 18s linear infinite;
+  opacity: 0.4;
+}
+
+.hearts-bg::after {
+  background-size: 14px 14px;
+  animation-duration: 25s;
+  animation-direction: reverse;
+  opacity: 0.25;
+}
+
+@keyframes floatHearts {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-100vh) rotate(20deg); }
+}
+
+/* Heart confetti burst */
+.heart-confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti-heart {
+  position: absolute;
+  top: -20px;
+  animation: confettiFall linear forwards;
+}
+
+.confetti-heart::before {
+  content: "\2764\FE0F";
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* Valentine color overrides */
+.valentine {
+  position: relative;
+  z-index: 1;
+}
+
+.valentine .app-header h1 {
+  color: #BE185D;
+}
+
+.valentine .app-header p {
+  color: #9D174D;
+}
+
+.valentine .app-header a {
+  color: #DB2777;
+}
+
+.valentine .input-form {
+  background: #FFF1F2;
+  box-shadow: 0 1px 3px rgba(190, 24, 93, 0.15);
+}
+
+.valentine .form-group label,
+.valentine .children-header label,
+.valentine .child-row label {
+  color: #9D174D;
+}
+
+.valentine .form-group select:focus,
+.valentine .form-group input:focus {
+  border-color: #EC4899;
+  box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
+}
+
+.valentine .btn-calculate {
+  background: #DB2777;
+}
+
+.valentine .btn-calculate:hover {
+  background: #BE185D;
+}
+
+.valentine .btn-calculate:disabled {
+  background: #F9A8D4;
+}
+
+.valentine .child-row {
+  background: #FCE7F3;
+}
+
+/* Results card */
+.valentine .results {
+  box-shadow: 0 1px 3px rgba(190, 24, 93, 0.15);
+}
+
+.valentine .headline-banner {
+  background: #FFF1F2;
+}
+
+.valentine .headline-banner.bonus {
+  border-left-color: #DB2777;
+}
+
+.valentine .headline-banner.bonus .headline-label,
+.valentine .headline-banner.bonus .headline-amount {
+  color: #BE185D;
+}
+
+.valentine .headline-banner.penalty {
+  border-left-color: #9D174D;
+}
+
+.valentine .headline-banner.penalty .headline-label,
+.valentine .headline-banner.penalty .headline-amount {
+  color: #9D174D;
+}
+
+.valentine .share-btn:hover {
+  border-color: #EC4899;
+  color: #DB2777;
+}
+
+.valentine .tab-btn:hover {
+  color: #EC4899;
+}
+
+.valentine .tab-btn.active {
+  color: #BE185D;
+  border-bottom-color: #DB2777;
+}
+
+.valentine .tab-bar {
+  border-bottom-color: #FECDD3;
+}
+
+.valentine .data-table th {
+  background: #FCE7F3;
+  border-bottom-color: #F9A8D4;
+  color: #9D174D;
+}
+
+.valentine .data-table td {
+  border-bottom-color: #FECDD3;
+}
+
+.valentine .data-table tr:hover {
+  background: #FFF1F2;
+}
+
+.valentine .data-table .positive {
+  color: #DB2777;
+}
+
+.valentine .data-table .negative {
+  color: #881337;
+}
+
+.valentine .program-name-tip {
+  border-bottom-color: #F9A8D4;
+}
+
+.valentine .program-name-tip .tooltip {
+  background: #9D174D;
+}
+
+.valentine .program-name-tip .tooltip::after {
+  border-top-color: #9D174D;
+}
+
+.valentine .spinner {
+  border-color: #FECDD3;
+  border-top-color: #DB2777;
+}
+
+.valentine .note {
+  border-top-color: #FECDD3;
+  color: #9D174D;
+}
+
+.valentine .error {
+  background: #FFF1F2;
+  color: #9D174D;
+}
+
+.valentine .heatmap-section h3 {
+  color: #9D174D;
+}

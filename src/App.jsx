@@ -63,8 +63,28 @@ export default function App() {
   const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState(null);
+  const [valentine, setValentine] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const initialValues = useRef(decodeFromHash());
   const didAutoCalc = useRef(false);
+
+  // Valentine mode toggle on "v" key (ignore when typing in inputs)
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key === "v" || e.key === "V") {
+        setValentine((prev) => {
+          if (!prev) {
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 2500);
+          }
+          return !prev;
+        });
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
 
   async function handleCalculate(data) {
     setFormData(data);
@@ -128,12 +148,27 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div className={`app ${valentine ? "valentine" : ""}`}>
+      {valentine && <div className="hearts-bg" aria-hidden="true" />}
+      {showConfetti && (
+        <div className="heart-confetti" aria-hidden="true">
+          {Array.from({ length: 24 }, (_, i) => (
+            <span key={i} className="confetti-heart" style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 0.5}s`,
+              animationDuration: `${1.5 + Math.random() * 1.5}s`,
+              fontSize: `${14 + Math.random() * 18}px`,
+              opacity: 0.7 + Math.random() * 0.3,
+            }} />
+          ))}
+        </div>
+      )}
       <header className="app-header">
-        <h1>Marriage Incentive Calculator</h1>
+        <h1>{valentine ? "Love & Taxes Calculator" : "Marriage Incentive Calculator"}</h1>
         <p>
-          Evaluate marriage penalties and bonuses based on state and individual
-          employment income.
+          {valentine
+            ? "Will tying the knot cost you? Find out this Valentine's Day."
+            : "Evaluate marriage penalties and bonuses based on state and individual employment income."}
         </p>
         <p>
           Powered by the{" "}
@@ -163,6 +198,7 @@ export default function App() {
           heatmapLoading={heatmapLoading}
           headIncome={formData?.headIncome ?? 0}
           spouseIncome={formData?.spouseIncome ?? 0}
+          valentine={valentine}
         />
       )}
 

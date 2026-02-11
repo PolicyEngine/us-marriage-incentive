@@ -121,6 +121,7 @@ export default function ResultsDisplay({
   heatmapLoading,
   headIncome,
   spouseIncome,
+  valentine,
 }) {
   const [activeTab, setActiveTab] = useState("summary");
 
@@ -165,6 +166,7 @@ export default function ResultsDisplay({
               grid={heatmapGrid}
               headIncome={headIncome}
               spouseIncome={spouseIncome}
+              valentine={valentine}
             />
           </Suspense>
         ) : null}

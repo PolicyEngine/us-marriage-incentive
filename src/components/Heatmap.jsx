@@ -3,7 +3,23 @@ import Plot from "react-plotly.js";
 
 const TICK_LABELS = Array.from({ length: 9 }, (_, i) => `$${i * 10}k`);
 
-export default function Heatmap({ grid, headIncome, spouseIncome }) {
+const TEAL_SCALE = [
+  [0, "#1D4044"],
+  [0.3, "#6B7280"],
+  [0.5, "#F2F4F7"],
+  [0.7, "#81E6D9"],
+  [1, "#285E61"],
+];
+
+const VALENTINE_SCALE = [
+  [0, "#881337"],
+  [0.3, "#9CA3AF"],
+  [0.5, "#FFF1F2"],
+  [0.7, "#F9A8D4"],
+  [1, "#BE185D"],
+];
+
+export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
   if (!grid || grid.length === 0) {
     return <p className="loading">No heatmap data available.</p>;
   }
@@ -17,6 +33,8 @@ export default function Heatmap({ grid, headIncome, spouseIncome }) {
   const absMax = Math.max(...flatValues.map(Math.abs));
   const zMin = -absMax;
   const zMax = absMax;
+
+  const accentColor = valentine ? "#BE185D" : "#285E61";
 
   // "You are here" marker — snap to nearest grid cell
   const markerX =
@@ -34,13 +52,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome }) {
             x: TICK_LABELS,
             y: TICK_LABELS,
             type: "heatmap",
-            colorscale: [
-              [0, "#1D4044"],
-              [0.3, "#6B7280"],
-              [0.5, "#F2F4F7"],
-              [0.7, "#81E6D9"],
-              [1, "#285E61"],
-            ],
+            colorscale: valentine ? VALENTINE_SCALE : TEAL_SCALE,
             zmin: zMin,
             zmax: zMax,
             xgap: 2,
@@ -63,12 +75,12 @@ export default function Heatmap({ grid, headIncome, spouseIncome }) {
             marker: {
               size: 18,
               color: "rgba(0,0,0,0)",
-              line: { width: 2.5, color: "#285E61" },
-              symbol: "diamond",
+              line: { width: 2.5, color: accentColor },
+              symbol: valentine ? "heart" : "diamond",
             },
-            text: ["You"],
+            text: [valentine ? "You \u2764" : "You"],
             textposition: "top center",
-            textfont: { size: 11, color: "#285E61", family: "-apple-system, BlinkMacSystemFont, sans-serif" },
+            textfont: { size: 11, color: accentColor, family: "-apple-system, BlinkMacSystemFont, sans-serif" },
             name: "Your situation",
             hovertemplate: "Your situation<extra></extra>",
             showlegend: false,
