@@ -1,7 +1,7 @@
 const API_BASE = "https://api.policyengine.org";
 export const DEFAULT_YEAR = "2026";
 export const AVAILABLE_YEARS = ["2024", "2025", "2026", "2027", "2028"];
-const DEFAULT_AGE = 40;
+export const DEFAULT_AGE = 40;
 
 // Variables organized by entity level (verified against the API)
 const SPM_UNIT_BENEFITS = [
@@ -13,11 +13,25 @@ const SPM_UNIT_BENEFITS = [
   "acp",
 ];
 
-const PERSON_BENEFITS = ["wic", "ssi", "medicaid"];
+const PERSON_BENEFITS = ["wic", "ssi", "social_security", "head_start", "early_head_start"];
 
-const TAX_UNIT_CREDITS = ["eitc", "ctc", "premium_tax_credit", "cdcc"];
+// Healthcare variables are NOT part of household_benefits or household_net_income.
+// They feed into healthcare_benefit_value and household_net_income_including_health_benefits.
+const HEALTH_PERSON_VARS = ["medicaid", "per_capita_chip"];
+const HEALTH_TAX_UNIT_VARS = ["premium_tax_credit"];
+
+const TAX_UNIT_CREDITS = ["eitc", "ctc", "cdcc"];
+
+const TAX_UNIT_STATE_CREDITS = [
+  "state_eitc",
+  "state_ctc",
+  "state_cdcc",
+  "state_refundable_credits",
+];
 
 const TAX_UNIT_TAXES = ["income_tax_before_refundable_credits"];
+
+const TAX_UNIT_STATE_TAXES = ["state_income_tax_before_refundable_credits"];
 
 const PERSON_TAXES = [
   "self_employment_tax",
@@ -32,23 +46,28 @@ export function createSituation(
   spouseIncome = null,
   children = [],
   year = DEFAULT_YEAR,
+  pregnancyStatus = {},
+  headAge = DEFAULT_AGE,
+  spouseAge = DEFAULT_AGE,
 ) {
   const members = ["you"];
   const maritalUnitMembers = ["you"];
 
   const people = {
     you: {
-      age: { [year]: DEFAULT_AGE },
+      age: { [year]: headAge },
       employment_income: { [year]: headIncome },
       is_disabled: { [year]: disabilityStatus.head || false },
+      is_pregnant: { [year]: pregnancyStatus.head || false },
     },
   };
 
   if (spouseIncome !== null) {
     people["your partner"] = {
-      age: { [year]: DEFAULT_AGE },
+      age: { [year]: spouseAge },
       employment_income: { [year]: spouseIncome },
       is_disabled: { [year]: disabilityStatus.spouse || false },
+      is_pregnant: { [year]: pregnancyStatus.spouse || false },
     };
     members.push("your partner");
     maritalUnitMembers.push("your partner");
@@ -93,10 +112,12 @@ function addOutputVariables(situation, year) {
   hh.household_benefits = { [year]: null };
   hh.household_refundable_tax_credits = { [year]: null };
   hh.household_tax_before_refundable_credits = { [year]: null };
+  hh.healthcare_benefit_value = { [year]: null };
+  hh.household_net_income_including_health_benefits = { [year]: null };
 
   for (const personName of Object.keys(situation.people)) {
     const person = situation.people[personName];
-    for (const v of [...PERSON_BENEFITS, ...PERSON_TAXES]) {
+    for (const v of [...PERSON_BENEFITS, ...HEALTH_PERSON_VARS, ...PERSON_TAXES]) {
       person[v] = { [year]: null };
     }
   }
@@ -107,7 +128,13 @@ function addOutputVariables(situation, year) {
   }
 
   const tu = situation.tax_units["your tax unit"];
-  for (const v of [...TAX_UNIT_CREDITS, ...TAX_UNIT_TAXES]) {
+  for (const v of [
+    ...HEALTH_TAX_UNIT_VARS,
+    ...TAX_UNIT_CREDITS,
+    ...TAX_UNIT_STATE_CREDITS,
+    ...TAX_UNIT_TAXES,
+    ...TAX_UNIT_STATE_TAXES,
+  ]) {
     tu[v] = { [year]: null };
   }
 
@@ -188,6 +215,9 @@ export async function getPrograms(
   spouseIncome = null,
   children = [],
   year = DEFAULT_YEAR,
+  pregnancyStatus = {},
+  headAge = DEFAULT_AGE,
+  spouseAge = DEFAULT_AGE,
 ) {
   const situation = createSituation(
     stateCode,
@@ -196,6 +226,9 @@ export async function getPrograms(
     spouseIncome,
     children,
     year,
+    pregnancyStatus,
+    headAge,
+    spouseAge,
   );
   addOutputVariables(situation, year);
 
@@ -211,6 +244,17 @@ export async function getPrograms(
   const personBenefits = extractPersonDict(result, PERSON_BENEFITS, year);
   const benefits = { ...spmBenefits, ...personBenefits };
 
+  // Healthcare variables (NOT part of household_benefits)
+  const healthPerson = extractPersonDict(result, HEALTH_PERSON_VARS, year);
+  const healthTu = extractDict(
+    result,
+    "tax_units",
+    "your tax unit",
+    HEALTH_TAX_UNIT_VARS,
+    year,
+  );
+  const health = { ...healthPerson, ...healthTu };
+
   const tuTaxes = extractDict(
     result,
     "tax_units",
@@ -221,6 +265,14 @@ export async function getPrograms(
   const personTaxes = extractPersonDict(result, PERSON_TAXES, year);
   const taxes = { ...tuTaxes, ...personTaxes };
 
+  const stateTaxes = extractDict(
+    result,
+    "tax_units",
+    "your tax unit",
+    TAX_UNIT_STATE_TAXES,
+    year,
+  );
+
   return {
     aggregates: {
       householdNetIncome: extractVal(
@@ -230,11 +282,25 @@ export async function getPrograms(
         "household_net_income",
         year,
       ),
+      householdNetIncomeWithHealth: extractVal(
+        result,
+        "households",
+        "your household",
+        "household_net_income_including_health_benefits",
+        year,
+      ),
       householdBenefits: extractVal(
         result,
         "households",
         "your household",
         "household_benefits",
+        year,
+      ),
+      healthcareBenefitValue: extractVal(
+        result,
+        "households",
+        "your household",
+        "healthcare_benefit_value",
         year,
       ),
       householdRefundableCredits: extractVal(
@@ -253,6 +319,7 @@ export async function getPrograms(
       ),
     },
     benefits,
+    health,
     credits: extractDict(
       result,
       "tax_units",
@@ -260,7 +327,15 @@ export async function getPrograms(
       TAX_UNIT_CREDITS,
       year,
     ),
+    stateCredits: extractDict(
+      result,
+      "tax_units",
+      "your tax unit",
+      TAX_UNIT_STATE_CREDITS,
+      year,
+    ),
     taxes,
+    stateTaxes,
   };
 }
 
@@ -271,6 +346,9 @@ export async function getCategorizedPrograms(
   children,
   disabilityStatus,
   year = DEFAULT_YEAR,
+  pregnancyStatus = {},
+  headAge = DEFAULT_AGE,
+  spouseAge = DEFAULT_AGE,
 ) {
   const [married, headSingle, spouseSingle] = await Promise.all([
     getPrograms(
@@ -280,8 +358,20 @@ export async function getCategorizedPrograms(
       spouseIncome,
       children,
       year,
+      pregnancyStatus,
+      headAge,
+      spouseAge,
     ),
-    getPrograms(stateCode, headIncome, disabilityStatus, null, children, year),
+    getPrograms(
+      stateCode,
+      headIncome,
+      disabilityStatus,
+      null,
+      children,
+      year,
+      { head: pregnancyStatus.head || false },
+      headAge,
+    ),
     getPrograms(
       stateCode,
       spouseIncome,
@@ -289,6 +379,8 @@ export async function getCategorizedPrograms(
       null,
       [],
       year,
+      { head: pregnancyStatus.spouse || false },
+      spouseAge,
     ),
   ]);
 
@@ -301,11 +393,18 @@ export async function getHeatmapData(
   children,
   disabilityStatus,
   year = DEFAULT_YEAR,
+  pregnancyStatus = {},
+  headIncome = 0,
+  spouseIncome = 0,
+  headAge = DEFAULT_AGE,
+  spouseAge = DEFAULT_AGE,
 ) {
-  const maxIncome = 80000;
-  const count = 17;
+  const rawMax = Math.max(80000, headIncome, spouseIncome);
+  const step = Math.ceil(rawMax / 32 / 2500) * 2500;
+  const maxIncome = step * 32;
+  const count = 33;
 
-  function buildHeatmapSituation(includeSpouse, childrenList, disability) {
+  function buildHeatmapSituation(includeSpouse, childrenList, disability, pregnancy, hAge, sAge) {
     const situation = createSituation(
       stateCode,
       maxIncome,
@@ -313,10 +412,14 @@ export async function getHeatmapData(
       includeSpouse ? maxIncome : null,
       childrenList,
       year,
+      pregnancy,
+      hAge,
+      sAge,
     );
 
     const hh = situation.households["your household"];
     hh.household_net_income = { [year]: null };
+    hh.household_net_income_including_health_benefits = { [year]: null };
     hh.household_benefits = { [year]: null };
     hh.household_refundable_tax_credits = { [year]: null };
     hh.household_tax_before_refundable_credits = { [year]: null };
@@ -365,15 +468,20 @@ export async function getHeatmapData(
     true,
     children,
     disabilityStatus,
+    pregnancyStatus,
+    headAge,
+    spouseAge,
   );
   const headSingleSituation = buildHeatmapSituation(
     false,
     children,
     disabilityStatus,
+    { head: pregnancyStatus.head || false },
+    headAge,
   );
   const spouseSingleSituation = buildHeatmapSituation(false, [], {
     head: disabilityStatus.spouse || false,
-  });
+  }, { head: pregnancyStatus.spouse || false }, spouseAge);
 
   const [marriedResult, headResult, spouseResult] = await Promise.all([
     callApi(marriedSituation),
@@ -383,6 +491,7 @@ export async function getHeatmapData(
 
   const variables = [
     "household_net_income",
+    "household_net_income_including_health_benefits",
     "household_benefits",
     "household_refundable_tax_credits",
     "household_tax_before_refundable_credits",
@@ -390,6 +499,7 @@ export async function getHeatmapData(
 
   const tabNames = [
     "Net Income",
+    "Net Income (with Healthcare)",
     "Benefits",
     "Refundable Tax Credits",
     "Tax Before Refundable Credits",
@@ -430,12 +540,19 @@ export async function getHeatmapData(
       row.map((val, j) => val - (headFlat[i] + spouseFlat[j])),
     );
 
+    // Transpose: API returns head-major (row=head, col=spouse) but Plotly
+    // z[row][col] maps to y[row],x[col] and x=head, y=spouse, so we need
+    // row=spouse, col=head.
+    const transposed = deltaGrid[0].map((_, col) =>
+      deltaGrid.map((row) => row[col]),
+    );
+
     if (varName === "household_tax_before_refundable_credits") {
-      grids[tabNames[v]] = deltaGrid.map((row) => row.map((val) => -val));
+      grids[tabNames[v]] = transposed.map((row) => row.map((val) => -val));
     } else {
-      grids[tabNames[v]] = deltaGrid;
+      grids[tabNames[v]] = transposed;
     }
   }
 
-  return grids;
+  return { grids, maxIncome, count };
 }

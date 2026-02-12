@@ -49,7 +49,7 @@ body {
 
 .form-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 2fr;
+  grid-template-columns: 2fr 1fr 2fr 1fr 2fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -221,6 +221,26 @@ body {
   color: #9B2C2C;
 }
 
+.headline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.health-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #5A5A5A;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.health-toggle input {
+  cursor: pointer;
+}
+
 .share-btn {
   background: none;
   border: 1px solid #CBD5E1;
@@ -292,7 +312,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
-  min-width: 500px;
+  min-width: 700px;
 }
 
 .data-table th {
@@ -365,8 +385,74 @@ body {
 }
 
 /* Heatmap */
-.heatmap-section {
+.heatmap-wrapper {
+  position: relative;
   margin-top: 1rem;
+}
+
+.fullscreen-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  color: #5A5A5A;
+  cursor: pointer;
+  z-index: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.fullscreen-btn:hover {
+  border-color: #319795;
+  color: #2C7A7B;
+}
+
+.fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-content {
+  background: #FFFFFF;
+  border-radius: 8px;
+  width: calc(100vw - 2rem);
+  height: calc(100vh - 2rem);
+  max-width: 1400px;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.fullscreen-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: none;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  color: #5A5A5A;
+  cursor: pointer;
+  z-index: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.fullscreen-close:hover {
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+.heatmap-section {
+  margin-top: 0;
 }
 
 .heatmap-section h3 {
@@ -703,3 +789,4 @@ body {
 .valentine .heatmap-section h3 {
   color: #9D174D;
 }
+

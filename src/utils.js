@@ -71,16 +71,20 @@ const ACRONYMS = {
   acp: "ACP",
   ctc: "CTC",
   cdcc: "CDCC",
+  chip: "CHIP",
+  per_capita_chip: "CHIP",
 };
 
 export const PROGRAM_DESCRIPTIONS = {
   // Summary
   "Net Income":
-    "Total income after taxes, credits, and benefits. The bottom line of how marriage affects your finances.",
+    "Total income after taxes, credits, and benefits. Does not include the value of healthcare coverage.",
+  "Healthcare Benefits":
+    "Cash equivalent value of healthcare coverage (Medicaid, CHIP, ACA premium subsidies). Not included in net income.",
   Benefits:
-    "Government assistance programs like SNAP, TANF, and Medicaid. Eligibility often depends on combined household income.",
+    "Government assistance programs like SNAP, TANF, and Head Start. Eligibility often depends on combined household income.",
   "Refundable Tax Credits":
-    "Tax credits that can result in a payment even if you owe no tax. Includes EITC, CTC, and premium tax credits.",
+    "Tax credits that can result in a payment even if you owe no tax. Includes EITC and CTC.",
   "Taxes Before Refundable Credits":
     "Federal income tax, Social Security, and Medicare taxes before any refundable credits are applied.",
   // Benefits
@@ -88,8 +92,12 @@ export const PROGRAM_DESCRIPTIONS = {
   TANF: "Temporary Assistance for Needy Families. Cash assistance with income limits that change when households merge.",
   WIC: "Special Supplemental Nutrition Program for Women, Infants, and Children. Eligibility based on household income.",
   SSI: "Supplemental Security Income. Married couples receive less than two individuals would separately.",
-  Medicaid:
-    "Health coverage with income thresholds based on household size. Marriage can change eligibility.",
+  "Social Security":
+    "Social Security benefits including retirement, disability, and survivors benefits.",
+  "Head Start":
+    "Federal preschool program for children ages 3–5 from low-income families.",
+  "Early Head Start":
+    "Federal program for infants and toddlers (0–3) from low-income families. Includes childcare and development services.",
   "Free School Meals":
     "National School Lunch Program free meals. Eligibility based on household income relative to the poverty line.",
   "Reduced Price School Meals":
@@ -97,12 +105,23 @@ export const PROGRAM_DESCRIPTIONS = {
   Lifeline:
     "FCC program providing discounted phone or internet service to low-income households.",
   ACP: "Affordable Connectivity Program. Broadband subsidy based on household income or program participation.",
+  "Other Benefits":
+    "Additional government benefits not individually listed, as computed by PolicyEngine.",
+  // Healthcare
+  Medicaid:
+    "Health coverage with income thresholds based on household size. Marriage can change eligibility.",
+  CHIP:
+    "Children's Health Insurance Program. Provides health coverage for children in families with incomes too high for Medicaid.",
+  "Premium Tax Credit":
+    "ACA marketplace health insurance subsidy. Based on household income relative to the poverty line.",
+  "Other Healthcare":
+    "Additional healthcare benefits not individually listed, as computed by PolicyEngine.",
   // Credits
   EITC: "Earned Income Tax Credit. Phase-out thresholds are higher for married filers, but combined income can still reduce the credit.",
   CTC: "Child Tax Credit. Income phase-outs differ by filing status; marriage can push income above thresholds.",
-  "Premium Tax Credit":
-    "ACA marketplace health insurance subsidy. Based on household income relative to the poverty line.",
   CDCC: "Child and Dependent Care Credit. Available to working parents; marriage changes eligible expenses and income limits.",
+  "Other Credits":
+    "Additional refundable tax credits not individually listed, as computed by PolicyEngine.",
   // Taxes
   "Income Tax Before Refundable Credits":
     "Federal income tax calculated on combined income. Tax brackets for married filers are not exactly double single brackets.",
@@ -112,16 +131,30 @@ export const PROGRAM_DESCRIPTIONS = {
     "6.2% tax on wages up to the annual cap. Calculated per worker, generally unaffected by marital status.",
   "Employee Medicare Tax":
     "1.45% tax on all wages (plus 0.9% above $200k/$250k married). The additional Medicare tax threshold changes with marriage.",
+  // State credits
+  "State EITC":
+    "State-level Earned Income Tax Credit. Many states offer their own EITC as a percentage of the federal credit.",
+  "State CTC":
+    "State-level Child Tax Credit. Some states provide additional child tax credits beyond the federal CTC.",
+  "State CDCC":
+    "State-level Child and Dependent Care Credit. State version of the federal dependent care credit.",
+  "State Refundable Credits":
+    "Total state refundable tax credits. Includes state EITC, CTC, and other refundable credits.",
+  "State Income Tax Before Refundable Credits":
+    "State income tax liability before applying state refundable credits.",
+  "Other Taxes":
+    "Additional taxes not individually listed, as computed by PolicyEngine.",
 };
 
 export function formatProgramName(name) {
   if (ACRONYMS[name]) return ACRONYMS[name];
   return name
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .split("_")
+    .map((word) => ACRONYMS[word] || word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
-function buildRows(categories, marriedValues, separateValues, filterZeros) {
+function buildRows(categories, marriedValues, separateValues, headValues, spouseValues, filterZeros) {
   const rows = [];
   for (let i = 0; i < categories.length; i++) {
     const m = marriedValues[i];
@@ -131,6 +164,8 @@ function buildRows(categories, marriedValues, separateValues, filterZeros) {
     const deltaPct = s !== 0 ? delta / s : 0;
     rows.push({
       program: categories[i],
+      headSingle: headValues ? formatCurrency(headValues[i]) : null,
+      spouseSingle: spouseValues ? formatCurrency(spouseValues[i]) : null,
       notMarried: formatCurrency(s),
       married: formatCurrency(m),
       delta: formatCurrency(delta),
@@ -152,6 +187,8 @@ function buildBreakdownRows(marriedDict, headDict, spouseDict) {
   const categories = [];
   const marriedValues = [];
   const separateValues = [];
+  const headValues = [];
+  const spouseValues = [];
 
   for (const key of allKeys) {
     const mVal = marriedDict[key] || 0;
@@ -160,9 +197,34 @@ function buildBreakdownRows(marriedDict, headDict, spouseDict) {
     categories.push(formatProgramName(key));
     marriedValues.push(mVal);
     separateValues.push(hVal + sVal);
+    headValues.push(hVal);
+    spouseValues.push(sVal);
   }
 
-  return buildRows(categories, marriedValues, separateValues, true);
+  return buildRows(categories, marriedValues, separateValues, headValues, spouseValues, true);
+}
+
+function sumDict(dict) {
+  return Object.values(dict || {}).reduce((a, b) => a + b, 0);
+}
+
+function addOtherRow(rows, label, aggMarried, aggHead, aggSpouse, trackedMarried, trackedHead, trackedSpouse) {
+  const otherM = aggMarried - trackedMarried;
+  const otherH = aggHead - trackedHead;
+  const otherS = aggSpouse - trackedSpouse;
+  const otherTotal = otherH + otherS;
+  if (Math.abs(otherM) < 1 && Math.abs(otherTotal) < 1) return;
+  const delta = otherM - otherTotal;
+  rows.push({
+    program: label,
+    headSingle: formatCurrency(otherH),
+    spouseSingle: formatCurrency(otherS),
+    notMarried: formatCurrency(otherTotal),
+    married: formatCurrency(otherM),
+    delta: formatCurrency(delta),
+    deltaPct: formatPercent(otherTotal !== 0 ? delta / otherTotal : 0),
+    rawDelta: delta,
+  });
 }
 
 export function computeTableData(results, tab) {
@@ -170,14 +232,10 @@ export function computeTableData(results, tab) {
 
   if (tab === "summary") {
     return buildRows(
-      [
-        "Net Income",
-        "Benefits",
-        "Refundable Tax Credits",
-        "Taxes Before Refundable Credits",
-      ],
+      ["Net Income", "Healthcare Benefits", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"],
       [
         married.aggregates.householdNetIncome,
+        married.aggregates.healthcareBenefitValue,
         married.aggregates.householdBenefits,
         married.aggregates.householdRefundableCredits,
         married.aggregates.householdTaxBeforeCredits,
@@ -185,6 +243,8 @@ export function computeTableData(results, tab) {
       [
         headSingle.aggregates.householdNetIncome +
           spouseSingle.aggregates.householdNetIncome,
+        headSingle.aggregates.healthcareBenefitValue +
+          spouseSingle.aggregates.healthcareBenefitValue,
         headSingle.aggregates.householdBenefits +
           spouseSingle.aggregates.householdBenefits,
         headSingle.aggregates.householdRefundableCredits +
@@ -192,31 +252,102 @@ export function computeTableData(results, tab) {
         headSingle.aggregates.householdTaxBeforeCredits +
           spouseSingle.aggregates.householdTaxBeforeCredits,
       ],
+      [
+        headSingle.aggregates.householdNetIncome,
+        headSingle.aggregates.healthcareBenefitValue,
+        headSingle.aggregates.householdBenefits,
+        headSingle.aggregates.householdRefundableCredits,
+        headSingle.aggregates.householdTaxBeforeCredits,
+      ],
+      [
+        spouseSingle.aggregates.householdNetIncome,
+        spouseSingle.aggregates.healthcareBenefitValue,
+        spouseSingle.aggregates.householdBenefits,
+        spouseSingle.aggregates.householdRefundableCredits,
+        spouseSingle.aggregates.householdTaxBeforeCredits,
+      ],
       false,
     );
   }
 
   if (tab === "benefits") {
-    return buildBreakdownRows(
+    const rows = buildBreakdownRows(
       married.benefits,
       headSingle.benefits,
       spouseSingle.benefits,
     );
+    addOtherRow(rows, "Other Benefits",
+      married.aggregates.householdBenefits,
+      headSingle.aggregates.householdBenefits,
+      spouseSingle.aggregates.householdBenefits,
+      sumDict(married.benefits),
+      sumDict(headSingle.benefits),
+      sumDict(spouseSingle.benefits),
+    );
+    return rows;
+  }
+
+  if (tab === "healthcare") {
+    const rows = buildBreakdownRows(
+      married.health,
+      headSingle.health,
+      spouseSingle.health,
+    );
+    addOtherRow(rows, "Other Healthcare",
+      married.aggregates.healthcareBenefitValue,
+      headSingle.aggregates.healthcareBenefitValue,
+      spouseSingle.aggregates.healthcareBenefitValue,
+      sumDict(married.health),
+      sumDict(headSingle.health),
+      sumDict(spouseSingle.health),
+    );
+    return rows;
   }
 
   if (tab === "credits") {
-    return buildBreakdownRows(
+    const rows = buildBreakdownRows(
       married.credits,
       headSingle.credits,
       spouseSingle.credits,
     );
+    addOtherRow(rows, "Other Credits",
+      married.aggregates.householdRefundableCredits,
+      headSingle.aggregates.householdRefundableCredits,
+      spouseSingle.aggregates.householdRefundableCredits,
+      sumDict(married.credits),
+      sumDict(headSingle.credits),
+      sumDict(spouseSingle.credits),
+    );
+    return rows;
   }
 
   if (tab === "taxes") {
-    return buildBreakdownRows(
+    const rows = buildBreakdownRows(
       married.taxes,
       headSingle.taxes,
       spouseSingle.taxes,
+    );
+    addOtherRow(rows, "Other Taxes",
+      married.aggregates.householdTaxBeforeCredits,
+      headSingle.aggregates.householdTaxBeforeCredits,
+      spouseSingle.aggregates.householdTaxBeforeCredits,
+      sumDict(married.taxes),
+      sumDict(headSingle.taxes),
+      sumDict(spouseSingle.taxes),
+    );
+    return rows;
+  }
+
+  if (tab === "state") {
+    const strip = (d) => {
+      const o = { ...d };
+      delete o.state_refundable_credits;
+      return o;
+    };
+    return buildBreakdownRows(
+      { ...strip(married.stateCredits || {}), ...(married.stateTaxes || {}) },
+      { ...strip(headSingle.stateCredits || {}), ...(headSingle.stateTaxes || {}) },
+      { ...strip(spouseSingle.stateCredits || {}), ...(spouseSingle.stateTaxes || {}) },
     );
   }
 

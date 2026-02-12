@@ -9,8 +9,12 @@ function encodeToHash(formData) {
   p.set("state", formData.stateCode);
   p.set("head", formData.headIncome);
   p.set("spouse", formData.spouseIncome);
+  if (formData.headAge && formData.headAge !== 40) p.set("ha", formData.headAge);
+  if (formData.spouseAge && formData.spouseAge !== 40) p.set("sa", formData.spouseAge);
   if (formData.disabilityStatus.head) p.set("hd", "1");
   if (formData.disabilityStatus.spouse) p.set("sd", "1");
+  if (formData.pregnancyStatus?.head) p.set("hp", "1");
+  if (formData.pregnancyStatus?.spouse) p.set("sp", "1");
   if (formData.children.length > 0) {
     p.set(
       "c",
@@ -44,9 +48,15 @@ function decodeFromHash() {
       stateCode: p.get("state"),
       headIncome: Number(p.get("head")),
       spouseIncome: Number(p.get("spouse") || 0),
+      headAge: Number(p.get("ha") || 40),
+      spouseAge: Number(p.get("sa") || 40),
       disabilityStatus: {
         head: p.get("hd") === "1",
         spouse: p.get("sd") === "1",
+      },
+      pregnancyStatus: {
+        head: p.get("hp") === "1",
+        spouse: p.get("sp") === "1",
       },
       children,
       year: p.get("year") || DEFAULT_YEAR,
@@ -81,7 +91,7 @@ export default function App() {
         + '</svg>'
       );
     } else {
-      link.href = "/favicon.svg";
+      link.href = import.meta.env.BASE_URL + "favicon.svg";
     }
   }, [valentine]);
 
@@ -113,8 +123,11 @@ export default function App() {
       stateCode,
       headIncome,
       spouseIncome,
+      headAge,
+      spouseAge,
       children,
       disabilityStatus,
+      pregnancyStatus,
       year,
     } = data;
 
@@ -131,6 +144,9 @@ export default function App() {
         children,
         disabilityStatus,
         year,
+        pregnancyStatus,
+        headAge,
+        spouseAge,
       );
       setResults(result);
       setLoading(false);
@@ -143,6 +159,11 @@ export default function App() {
           children,
           disabilityStatus,
           year,
+          pregnancyStatus,
+          headIncome,
+          spouseIncome,
+          headAge,
+          spouseAge,
         );
         setHeatmapData(heatmap);
       } catch (e) {

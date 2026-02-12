@@ -1,8 +1,6 @@
 import React from "react";
 import Plot from "react-plotly.js";
 
-const TICK_LABELS = Array.from({ length: 17 }, (_, i) => `$${i * 5}k`);
-
 const TEAL_SCALE = [
   [0, "#1D4044"],
   [0.3, "#6B7280"],
@@ -19,7 +17,7 @@ const VALENTINE_SCALE = [
   [1, "#BE185D"],
 ];
 
-export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
+export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false }) {
   if (!grid || grid.length === 0) {
     return <p className="loading">No heatmap data available.</p>;
   }
@@ -29,6 +27,16 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
     return <p className="loading">No changes in the net income data.</p>;
   }
 
+  const step = maxIncome / (count - 1);
+  const tickLabels = Array.from({ length: count }, (_, i) => {
+    const val = i * step;
+    if (val === 0) return "$0";
+    return `$${val / 1000}k`;
+  });
+  // Show every 4th tick for 33-point grids, every 2nd for smaller
+  const tickInterval = count > 20 ? 4 : 2;
+  const visibleTicks = tickLabels.filter((_, i) => i % tickInterval === 0);
+
   const flatValues = grid.flat();
   const absMax = Math.max(...flatValues.map(Math.abs));
   const zMin = -absMax;
@@ -37,10 +45,12 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
   const accentColor = valentine ? "#BE185D" : "#285E61";
 
   // "You are here" marker — snap to nearest grid cell
-  const markerX =
-    TICK_LABELS[Math.min(16, Math.max(0, Math.round(headIncome / 5000)))];
-  const markerY =
-    TICK_LABELS[Math.min(16, Math.max(0, Math.round(spouseIncome / 5000)))];
+  const xi = Math.min(count - 1, Math.max(0, Math.round(headIncome / step)));
+  const yi = Math.min(count - 1, Math.max(0, Math.round(spouseIncome / step)));
+  const markerX = tickLabels[xi];
+  const markerY = tickLabels[yi];
+  // Use exact calculated delta when available (grid snapping can be inaccurate)
+  const markerVal = markerDelta !== null ? markerDelta : (grid[yi]?.[xi] ?? 0);
 
   return (
     <div className="heatmap-section">
@@ -49,14 +59,14 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
         data={[
           {
             z: grid,
-            x: TICK_LABELS,
-            y: TICK_LABELS,
+            x: tickLabels,
+            y: tickLabels,
             type: "heatmap",
             colorscale: valentine ? VALENTINE_SCALE : TEAL_SCALE,
             zmin: zMin,
             zmax: zMax,
-            xgap: 2,
-            ygap: 2,
+            xgap: 1,
+            ygap: 1,
             colorbar: {
               title: { text: "Net Change", side: "right" },
               tickprefix: "$",
@@ -73,7 +83,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
             type: "scatter",
             mode: "markers+text",
             marker: {
-              size: 18,
+              size: 16,
               color: "rgba(0,0,0,0)",
               line: { width: 2.5, color: accentColor },
               symbol: valentine ? "heart" : "diamond",
@@ -82,7 +92,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
             textposition: "top center",
             textfont: { size: 11, color: accentColor, family: "-apple-system, BlinkMacSystemFont, sans-serif" },
             name: "Your situation",
-            hovertemplate: "Your situation<extra></extra>",
+            hovertemplate: `Your situation<br>Change: $${Math.round(markerVal).toLocaleString()}<extra></extra>`,
             showlegend: false,
           },
         ]}
@@ -91,18 +101,22 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine }) {
             title: { text: "Head Employment Income", standoff: 10 },
             side: "bottom",
             tickangle: 0,
+            tickvals: visibleTicks,
+            ticktext: visibleTicks,
           },
           yaxis: {
             title: { text: "Spouse Employment Income", standoff: 10 },
+            tickvals: visibleTicks,
+            ticktext: visibleTicks,
           },
-          height: 520,
-          margin: { l: 100, r: 80, t: 10, b: 60 },
+          height: fullscreen ? window.innerHeight - 80 : 600,
+          margin: { l: 80, r: 80, t: 10, b: 60 },
           plot_bgcolor: "#FFFFFF",
           paper_bgcolor: "transparent",
           font: { family: "-apple-system, BlinkMacSystemFont, sans-serif" },
         }}
         config={{ responsive: true, displayModeBar: false }}
-        style={{ width: "100%", maxWidth: 620 }}
+        style={{ width: "100%" }}
       />
     </div>
   );

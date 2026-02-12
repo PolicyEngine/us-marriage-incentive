@@ -17,6 +17,18 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
   const [spouseDisabled, setSpouseDisabled] = useState(
     iv.disabilityStatus?.spouse || false,
   );
+  const [headAge, setHeadAge] = useState(
+    iv.headAge ? String(iv.headAge) : "40",
+  );
+  const [spouseAge, setSpouseAge] = useState(
+    iv.spouseAge ? String(iv.spouseAge) : "40",
+  );
+  const [headPregnant, setHeadPregnant] = useState(
+    iv.pregnancyStatus?.head || false,
+  );
+  const [spousePregnant, setSpousePregnant] = useState(
+    iv.pregnancyStatus?.spouse || false,
+  );
   const [children, setChildren] = useState(
     (iv.children || []).map((c) => ({ ...c, age: String(c.age) })),
   );
@@ -47,10 +59,16 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
       stateCode,
       headIncome: toNum(headIncome),
       spouseIncome: toNum(spouseIncome),
+      headAge: toNum(headAge) || 40,
+      spouseAge: toNum(spouseAge) || 40,
       children: children.map((c) => ({ ...c, age: toNum(c.age) })),
       disabilityStatus: {
         head: headDisabled,
         spouse: spouseDisabled,
+      },
+      pregnancyStatus: {
+        head: headPregnant,
+        spouse: spousePregnant,
       },
       year,
     });
@@ -94,6 +112,17 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
           />
         </div>
         <div className="form-group">
+          <label>Head Age</label>
+          <input
+            type="number"
+            min="18"
+            max="100"
+            placeholder="40"
+            value={headAge}
+            onChange={(e) => setHeadAge(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
           <label>Spouse Employment Income</label>
           <input
             type="number"
@@ -102,6 +131,17 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             placeholder="0"
             value={spouseIncome}
             onChange={(e) => setSpouseIncome(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label>Spouse Age</label>
+          <input
+            type="number"
+            min="18"
+            max="100"
+            placeholder="40"
+            value={spouseAge}
+            onChange={(e) => setSpouseAge(e.target.value)}
           />
         </div>
       </div>
@@ -122,6 +162,22 @@ export default function InputForm({ onCalculate, loading, initialValues }) {
             onChange={(e) => setSpouseDisabled(e.target.checked)}
           />
           Spouse is disabled
+        </label>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={headPregnant}
+            onChange={(e) => setHeadPregnant(e.target.checked)}
+          />
+          Head is pregnant
+        </label>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={spousePregnant}
+            onChange={(e) => setSpousePregnant(e.target.checked)}
+          />
+          Spouse is pregnant
         </label>
       </div>
 
