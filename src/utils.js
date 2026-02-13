@@ -388,20 +388,11 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
       delete o.state_refundable_credits;
       return o;
     };
-    const rows = buildBreakdownRows(
+    return buildBreakdownRows(
       strip(married.stateCredits || {}),
       strip(headSingle.stateCredits || {}),
       strip(spouseSingle.stateCredits || {}),
     );
-    addOtherRow(rows, "Other State Credits",
-      married.aggregates.householdRefundableStateCredits,
-      headSingle.aggregates.householdRefundableStateCredits,
-      spouseSingle.aggregates.householdRefundableStateCredits,
-      sumDict(strip(married.stateCredits || {})),
-      sumDict(strip(headSingle.stateCredits || {})),
-      sumDict(strip(spouseSingle.stateCredits || {})),
-    );
-    return rows;
   }
 
   return [];
