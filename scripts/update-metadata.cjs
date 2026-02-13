@@ -109,17 +109,34 @@ async function main() {
 
   const healthcare = healthChildren.map(v => varInfo(v, variables));
 
+  // Discover per-state credit leaf variables so we can show exact credit
+  // names instead of an "Other State Credits" bucket.
+  const stateAggChildren = getDirectChildren("state_refundable_credits", variables, parameters, YEAR);
+  const stateCreditsByState = {};
+  for (const stateAgg of stateAggChildren) {
+    // stateAgg is like "ca_refundable_credits" — extract state code
+    const match = stateAgg.match(/^([a-z]{2,3})_refundable_credits$/);
+    if (!match) continue;
+    const code = match[1].toUpperCase();
+    const leafCredits = getDirectChildren(stateAgg, variables, parameters, YEAR);
+    if (leafCredits.length > 0) {
+      stateCreditsByState[code] = leafCredits.map(v => varInfo(v, variables));
+    }
+  }
+  console.log(`\nState credit leaf variables discovered for ${Object.keys(stateCreditsByState).length} states`);
+  for (const [code, creds] of Object.entries(stateCreditsByState)) {
+    console.log(`  ${code}: ${creds.map(c => c.variable).join(", ")}`);
+  }
+
   const metadata = {
     benefits,
     credits,
     taxes,
     healthcare,
     stateCredits: [
-      varInfo("state_eitc", variables),
-      varInfo("state_ctc", variables),
-      varInfo("state_cdcc", variables),
       varInfo("state_refundable_credits", variables),
     ],
+    stateCreditsByState,
     stateTaxes: [
       varInfo("state_income_tax_before_refundable_credits", variables),
     ],
@@ -130,6 +147,7 @@ async function main() {
       varInfo("household_refundable_tax_credits", variables),
       varInfo("household_tax_before_refundable_credits", variables),
       varInfo("healthcare_benefit_value", variables),
+      varInfo("household_refundable_state_tax_credits", variables),
     ],
   };
 

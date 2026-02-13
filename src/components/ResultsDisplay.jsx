@@ -9,7 +9,7 @@ const TABS = [
   { key: "taxes", label: "Taxes", heatmapKey: "Tax Before Refundable Credits" },
   { key: "benefits", label: "Benefits", heatmapKey: "Benefits" },
   { key: "healthcare", label: "Healthcare", heatmapKey: "Healthcare Benefits" },
-  { key: "credits", label: "Federal Credits", heatmapKey: "Refundable Tax Credits" },
+  { key: "credits", label: "Federal Credits", heatmapKey: "Federal Credits" },
   { key: "state", label: "State Credits", heatmapKey: "State Credits" },
 ];
 
@@ -81,7 +81,7 @@ function DataTable({ rows }) {
   );
 }
 
-function HeadlineBanner({ results, showHealth, onToggleHealth }) {
+function HeadlineBanner({ results, showHealth }) {
   const [copied, setCopied] = useState(false);
   const { married, headSingle, spouseSingle } = results;
 
@@ -118,14 +118,6 @@ function HeadlineBanner({ results, showHealth, onToggleHealth }) {
         )}
       </div>
       <div className="headline-actions">
-        <label className="health-toggle" title="Include the estimated cash value of healthcare coverage (Medicaid, CHIP, ACA subsidies). These are not cash benefits but represent the value of coverage you would otherwise need to purchase.">
-          <input
-            type="checkbox"
-            checked={showHealth}
-            onChange={(e) => onToggleHealth(e.target.checked)}
-          />
-          Include healthcare
-        </label>
         <button
           className="share-btn"
           onClick={handleShare}
@@ -188,7 +180,6 @@ export default function ResultsDisplay({
     "Net Income": "householdNetIncome",
     "Net Income (with Healthcare)": "householdNetIncomeWithHealth",
     "Benefits": "householdBenefits",
-    "Refundable Tax Credits": "householdRefundableCredits",
     "Tax Before Refundable Credits": "householdTaxBeforeCredits",
   };
   const aggKey = HEATMAP_AGG[heatmapKey];
@@ -236,6 +227,7 @@ export default function ResultsDisplay({
         fullscreen={fullscreen}
         onCellClick={heatmapData?.programData ? handleCellClick : undefined}
         selectedCell={cellSelection}
+        label={heatmapKey}
       />
     </Suspense>
   ) : null;
@@ -245,7 +237,6 @@ export default function ResultsDisplay({
       <HeadlineBanner
         results={activeResults}
         showHealth={showHealth}
-        onToggleHealth={setShowHealth}
       />
       <div className="tab-bar">
         {TABS.filter((tab) => tab.key !== "healthcare" || showHealth).map((tab) => (
@@ -262,6 +253,14 @@ export default function ResultsDisplay({
       <div className="tab-content-split">
         <div className="split-table">
           <DataTable rows={rows} />
+          <label className="health-toggle" title="Include the estimated cash value of healthcare coverage (Medicaid, CHIP, ACA subsidies). These are not cash benefits but represent the value of coverage you would otherwise need to purchase.">
+            <input
+              type="checkbox"
+              checked={showHealth}
+              onChange={(e) => setShowHealth(e.target.checked)}
+            />
+            Include healthcare
+          </label>
         </div>
 
         {heatmapContent && (
@@ -301,6 +300,7 @@ export default function ResultsDisplay({
                 fullscreen
                 onCellClick={heatmapData?.programData ? handleCellClick : undefined}
                 selectedCell={cellSelection}
+                label={heatmapKey}
               />
             </Suspense>
           </div>

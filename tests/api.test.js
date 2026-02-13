@@ -47,7 +47,7 @@ describe("Scenario 1: Married CA $45k/$45k no children", () => {
     );
   }, 60000);
 
-  it("returns all 6 aggregate keys as numbers", () => {
+  it("returns all 7 aggregate keys as numbers", () => {
     const agg = result.aggregates;
     expect(typeof agg.householdNetIncome).toBe("number");
     expect(typeof agg.householdNetIncomeWithHealth).toBe("number");
@@ -55,6 +55,7 @@ describe("Scenario 1: Married CA $45k/$45k no children", () => {
     expect(typeof agg.householdRefundableCredits).toBe("number");
     expect(typeof agg.householdTaxBeforeCredits).toBe("number");
     expect(typeof agg.healthcareBenefitValue).toBe("number");
+    expect(typeof agg.householdRefundableStateCredits).toBe("number");
   });
 
   it("benefits dict has all metadata benefit keys", () => {

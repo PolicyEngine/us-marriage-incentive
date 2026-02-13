@@ -127,7 +127,7 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
 
       <PersonSection
         title="You"
-        accent="teal"
+        accent="you"
         income={headIncome}
         onIncomeChange={(v) => handleIncomeChange(setHeadIncome, v)}
         onIncomeBlur={() => handleIncomeBlur(setHeadIncome, headIncome, "headIncome")}
@@ -144,7 +144,7 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
 
       <PersonSection
         title="Your Partner"
-        accent="slate"
+        accent="partner"
         income={spouseIncome}
         onIncomeChange={(v) => handleIncomeChange(setSpouseIncome, v)}
         onIncomeBlur={() => handleIncomeBlur(setSpouseIncome, spouseIncome, "spouseIncome")}
@@ -165,27 +165,31 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
           <button
             type="button"
             className="btn-add-child"
-            onClick={() => setChildren([...children, { age: "", isDisabled: false }])}
+            onClick={() => setChildren([...children, { age: "5", isDisabled: false }])}
           >+</button>
         </div>
         {children.map((child, i) => (
           <div className="sf-child" key={i}>
-            <input
-              type="number"
-              min="0"
-              max="18"
-              placeholder="Age"
-              value={child.age}
-              className={errors[`childAge${i}`] ? "input-error" : ""}
-              onChange={(e) => updateChild(i, "age", e.target.value)}
-              onBlur={() => handleChildAgeBlur(i, child.age)}
-            />
-            <label className="sf-ck">
+            <div className="sf-child-age">
+              <input
+                type="number"
+                min="0"
+                max="18"
+                placeholder="Age"
+                value={child.age}
+                className={errors[`childAge${i}`] ? "input-error" : ""}
+                onChange={(e) => updateChild(i, "age", e.target.value)}
+                onBlur={() => handleChildAgeBlur(i, child.age)}
+              />
+              <span className="sf-child-age-suffix">yr</span>
+            </div>
+            <label className="sf-toggle">
               <input
                 type="checkbox"
                 checked={child.isDisabled}
                 onChange={(e) => updateChild(i, "isDisabled", e.target.checked)}
               />
+              <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
               Disabled
             </label>
             <button
@@ -243,12 +247,14 @@ function PersonSection({
         </div>
       </div>
       <div className="sf-checks">
-        <label className="sf-ck">
+        <label className="sf-toggle">
           <input type="checkbox" checked={disabled} onChange={(e) => onDisabledChange(e.target.checked)} />
+          <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
           Disabled
         </label>
-        <label className="sf-ck">
+        <label className="sf-toggle">
           <input type="checkbox" checked={pregnant} onChange={(e) => onPregnantChange(e.target.checked)} />
+          <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
           Pregnant
         </label>
       </div>

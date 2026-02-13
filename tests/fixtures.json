@@ -1,0 +1,305 @@
+{
+  "Married CA $45k/$45k no kids": {
+    "aggregates": {
+      "householdNetIncome": 75131.23,
+      "householdNetIncomeWithHealth": 75131.23,
+      "householdBenefits": 0.0,
+      "householdRefundableCredits": 0.0,
+      "householdTaxBeforeCredits": 14868.77,
+      "healthcareBenefitValue": 0.0,
+      "householdRefundableStateCredits": 0.0
+    },
+    "benefits": {
+      "social_security": 0.0,
+      "ssi": 0.0,
+      "snap": 0.0,
+      "wic": 0.0,
+      "free_school_meals": 0.0,
+      "reduced_price_school_meals": 0.0,
+      "spm_unit_broadband_subsidy": 0.0,
+      "tanf": 0.0,
+      "high_efficiency_electric_home_rebate": 0.0,
+      "residential_efficiency_electrification_rebate": 0.0,
+      "unemployment_compensation": 0.0,
+      "head_start": 0.0,
+      "early_head_start": 0.0,
+      "basic_income": 0.0,
+      "spm_unit_capped_housing_subsidy": 0.0,
+      "household_state_benefits": 0.0,
+      "commodity_supplemental_food_program": 0.0
+    },
+    "credits": {
+      "eitc": 0.0,
+      "refundable_american_opportunity_credit": 0.0,
+      "refundable_ctc": 0.0,
+      "recovery_rebate_credit": 0.0,
+      "refundable_payroll_tax_credit": 0.0
+    },
+    "taxes": {
+      "employee_payroll_tax": 6885.0,
+      "self_employment_tax": 0.0,
+      "income_tax_before_refundable_credits": 6440.0,
+      "flat_tax": 0.0,
+      "household_state_tax_before_refundable_credits": 1543.77
+    },
+    "health": {
+      "medicaid_cost": 0.0,
+      "per_capita_chip": 0.0,
+      "aca_ptc": 0.0,
+      "co_omnisalud": 0.0,
+      "or_healthier_oregon_cost": 0.0
+    },
+    "stateCredits": {
+      "state_refundable_credits": 0.0,
+      "California foster youth tax credit": 0.0,
+      "CalEITC": 0.0,
+      "California Young Child Tax Credit": 0.0,
+      "San Francisco Working Families Tax Credit": 0.0
+    },
+    "stateTaxes": {
+      "state_income_tax_before_refundable_credits": 1543.77
+    }
+  },
+  "Single CA $20k 1 child(5)": {
+    "aggregates": {
+      "householdNetIncome": 33226.95,
+      "householdNetIncomeWithHealth": 40852.78,
+      "householdBenefits": 7011.28,
+      "householdRefundableCredits": 7745.68,
+      "householdTaxBeforeCredits": 1530.0,
+      "healthcareBenefitValue": 7625.82,
+      "householdRefundableStateCredits": 1618.68
+    },
+    "benefits": {
+      "social_security": 0.0,
+      "ssi": 0.0,
+      "snap": 1120.32,
+      "wic": 0.0,
+      "free_school_meals": 1130.96,
+      "reduced_price_school_meals": 0.0,
+      "spm_unit_broadband_subsidy": 0.0,
+      "tanf": 4760.0,
+      "high_efficiency_electric_home_rebate": 0.0,
+      "residential_efficiency_electrification_rebate": 0.0,
+      "unemployment_compensation": 0.0,
+      "head_start": 0.0,
+      "early_head_start": 0.0,
+      "basic_income": 0.0,
+      "spm_unit_capped_housing_subsidy": 0.0,
+      "household_state_benefits": 0.0,
+      "commodity_supplemental_food_program": 0.0
+    },
+    "credits": {
+      "eitc": 4427.0,
+      "refundable_american_opportunity_credit": 0.0,
+      "refundable_ctc": 1700.0,
+      "recovery_rebate_credit": 0.0,
+      "refundable_payroll_tax_credit": 0.0
+    },
+    "taxes": {
+      "employee_payroll_tax": 1530.0,
+      "self_employment_tax": 0.0,
+      "income_tax_before_refundable_credits": 0.0,
+      "flat_tax": 0.0,
+      "household_state_tax_before_refundable_credits": 0.0
+    },
+    "health": {
+      "medicaid_cost": 7625.82,
+      "per_capita_chip": 0.0,
+      "aca_ptc": 0.0,
+      "co_omnisalud": 0.0,
+      "or_healthier_oregon_cost": 0.0
+    },
+    "stateCredits": {
+      "state_refundable_credits": 1618.68,
+      "California foster youth tax credit": 0.0,
+      "CalEITC": 404.5,
+      "California Young Child Tax Credit": 1214.18,
+      "San Francisco Working Families Tax Credit": 0.0
+    },
+    "stateTaxes": {
+      "state_income_tax_before_refundable_credits": 0.0
+    }
+  },
+  "Low-income CA $10k 1 child(3)": {
+    "aggregates": {
+      "householdNetIncome": 48938.59,
+      "householdNetIncomeWithHealth": 56564.41,
+      "householdBenefits": 32626.0,
+      "householdRefundableCredits": 7077.59,
+      "householdTaxBeforeCredits": 765.0,
+      "healthcareBenefitValue": 7625.82,
+      "householdRefundableStateCredits": 2552.59
+    },
+    "benefits": {
+      "social_security": 0.0,
+      "ssi": 0.0,
+      "snap": 2017.62,
+      "wic": 501.09,
+      "free_school_meals": 0.0,
+      "reduced_price_school_meals": 0.0,
+      "spm_unit_broadband_subsidy": 0.0,
+      "tanf": 9760.0,
+      "high_efficiency_electric_home_rebate": 0.0,
+      "residential_efficiency_electrification_rebate": 0.0,
+      "unemployment_compensation": 0.0,
+      "head_start": 20347.29,
+      "early_head_start": 0.0,
+      "basic_income": 0.0,
+      "spm_unit_capped_housing_subsidy": 0.0,
+      "household_state_benefits": 0.0,
+      "commodity_supplemental_food_program": 0.0
+    },
+    "credits": {
+      "eitc": 3400.0,
+      "refundable_american_opportunity_credit": 0.0,
+      "refundable_ctc": 1125.0,
+      "recovery_rebate_credit": 0.0,
+      "refundable_payroll_tax_credit": 0.0
+    },
+    "taxes": {
+      "employee_payroll_tax": 765.0,
+      "self_employment_tax": 0.0,
+      "income_tax_before_refundable_credits": 0.0,
+      "flat_tax": 0.0,
+      "household_state_tax_before_refundable_credits": 0.0
+    },
+    "health": {
+      "medicaid_cost": 7625.82,
+      "per_capita_chip": 0.0,
+      "aca_ptc": 0.0,
+      "co_omnisalud": 0.0,
+      "or_healthier_oregon_cost": 0.0
+    },
+    "stateCredits": {
+      "state_refundable_credits": 2552.59,
+      "California foster youth tax credit": 0.0,
+      "CalEITC": 1338.41,
+      "California Young Child Tax Credit": 1214.18,
+      "San Francisco Working Families Tax Credit": 0.0
+    },
+    "stateTaxes": {
+      "state_income_tax_before_refundable_credits": 0.0
+    }
+  },
+  "Married NY $80k/$40k 2 kids": {
+    "aggregates": {
+      "householdNetIncome": 100759.95,
+      "householdNetIncomeWithHealth": 110107.53,
+      "householdBenefits": 0.0,
+      "householdRefundableCredits": 835.0,
+      "householdTaxBeforeCredits": 20075.05,
+      "healthcareBenefitValue": 9347.58,
+      "householdRefundableStateCredits": 835.0
+    },
+    "benefits": {
+      "social_security": 0.0,
+      "ssi": 0.0,
+      "snap": 0.0,
+      "wic": 0.0,
+      "free_school_meals": 0.0,
+      "reduced_price_school_meals": 0.0,
+      "spm_unit_broadband_subsidy": 0.0,
+      "tanf": 0.0,
+      "high_efficiency_electric_home_rebate": 0.0,
+      "residential_efficiency_electrification_rebate": 0.0,
+      "unemployment_compensation": 0.0,
+      "head_start": 0.0,
+      "early_head_start": 0.0,
+      "basic_income": 0.0,
+      "spm_unit_capped_housing_subsidy": 0.0,
+      "household_state_benefits": 0.0,
+      "commodity_supplemental_food_program": 0.0
+    },
+    "credits": {
+      "eitc": 0.0,
+      "refundable_american_opportunity_credit": 0.0,
+      "refundable_ctc": 0.0,
+      "recovery_rebate_credit": 0.0,
+      "refundable_payroll_tax_credit": 0.0
+    },
+    "taxes": {
+      "employee_payroll_tax": 9180.0,
+      "self_employment_tax": 0.0,
+      "income_tax_before_refundable_credits": 5640.0,
+      "flat_tax": 0.0,
+      "household_state_tax_before_refundable_credits": 5255.05
+    },
+    "health": {
+      "medicaid_cost": 0.0,
+      "per_capita_chip": 4979.58,
+      "aca_ptc": 4368.0,
+      "co_omnisalud": 0.0,
+      "or_healthier_oregon_cost": 0.0
+    },
+    "stateCredits": {
+      "state_refundable_credits": 835.0,
+      "New York EITC": 0.0,
+      "NY Supplemental EITC": 0.0,
+      "NY CTC": 835.0,
+      "NY CDCC": 0.0,
+      "NY real property tax credit": 0.0,
+      "NY college tuition credit": 0.0
+    },
+    "stateTaxes": {
+      "state_income_tax_before_refundable_credits": 5255.05
+    }
+  },
+  "Single TX $0 no kids (zero income)": {
+    "aggregates": {
+      "householdNetIncome": 3596.04,
+      "householdNetIncomeWithHealth": 3596.04,
+      "householdBenefits": 3596.04,
+      "householdRefundableCredits": 0.0,
+      "householdTaxBeforeCredits": 0.0,
+      "healthcareBenefitValue": 0.0,
+      "householdRefundableStateCredits": 0.0
+    },
+    "benefits": {
+      "social_security": 0.0,
+      "ssi": 0.0,
+      "snap": 3596.04,
+      "wic": 0.0,
+      "free_school_meals": 0.0,
+      "reduced_price_school_meals": 0.0,
+      "spm_unit_broadband_subsidy": 0.0,
+      "tanf": 0.0,
+      "high_efficiency_electric_home_rebate": 0.0,
+      "residential_efficiency_electrification_rebate": 0.0,
+      "unemployment_compensation": 0.0,
+      "head_start": 0.0,
+      "early_head_start": 0.0,
+      "basic_income": 0.0,
+      "spm_unit_capped_housing_subsidy": 0.0,
+      "household_state_benefits": 0.0,
+      "commodity_supplemental_food_program": 0.0
+    },
+    "credits": {
+      "eitc": 0.0,
+      "refundable_american_opportunity_credit": 0.0,
+      "refundable_ctc": 0.0,
+      "recovery_rebate_credit": 0.0,
+      "refundable_payroll_tax_credit": 0.0
+    },
+    "taxes": {
+      "employee_payroll_tax": 0.0,
+      "self_employment_tax": 0.0,
+      "income_tax_before_refundable_credits": 0.0,
+      "flat_tax": 0.0,
+      "household_state_tax_before_refundable_credits": 0.0
+    },
+    "health": {
+      "medicaid_cost": 0.0,
+      "per_capita_chip": 0.0,
+      "aca_ptc": 0.0,
+      "co_omnisalud": 0.0,
+      "or_healthier_oregon_cost": 0.0
+    },
+    "stateCredits": {
+      "state_refundable_credits": 0.0
+    },
+    "stateTaxes": {
+      "state_income_tax_before_refundable_credits": 0.0
+    }
+  }
+}

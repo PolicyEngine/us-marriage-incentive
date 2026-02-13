@@ -176,7 +176,7 @@ export const PROGRAM_DESCRIPTIONS = {
 export function formatProgramName(name) {
   if (ACRONYMS[name]) return ACRONYMS[name];
   return name
-    .split("_")
+    .split(/[_ ]+/)
     .map((word) => ACRONYMS[word] || word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
@@ -341,10 +341,9 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
   }
 
   if (tab === "credits") {
-    // householdRefundableCredits includes state credits, so subtract them
-    // to get the federal-only aggregate for the "Other" residual.
+    // Federal-only aggregate = total credits - state credits
     const fedAgg = (r) =>
-      r.aggregates.householdRefundableCredits - (r.stateCredits?.state_refundable_credits || 0);
+      r.aggregates.householdRefundableCredits - r.aggregates.householdRefundableStateCredits;
     const rows = buildBreakdownRows(
       married.credits,
       headSingle.credits,
@@ -389,11 +388,20 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
       delete o.state_refundable_credits;
       return o;
     };
-    return buildBreakdownRows(
+    const rows = buildBreakdownRows(
       strip(married.stateCredits || {}),
       strip(headSingle.stateCredits || {}),
       strip(spouseSingle.stateCredits || {}),
     );
+    addOtherRow(rows, "Other State Credits",
+      married.aggregates.householdRefundableStateCredits,
+      headSingle.aggregates.householdRefundableStateCredits,
+      spouseSingle.aggregates.householdRefundableStateCredits,
+      sumDict(strip(married.stateCredits || {})),
+      sumDict(strip(headSingle.stateCredits || {})),
+      sumDict(strip(spouseSingle.stateCredits || {})),
+    );
+    return rows;
   }
 
   return [];

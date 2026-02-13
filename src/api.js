@@ -42,6 +42,19 @@ function groupByEntity(vars) {
 
 const DETAIL_BY_ENTITY = groupByEntity(ALL_DETAIL_VARS);
 
+/**
+ * Get per-state credit entries for a given state code.
+ * NYC credits are included when stateCode is "NY".
+ */
+function getStateCreditEntries(stateCode) {
+  const entries = metadata.stateCreditsByState[stateCode] || [];
+  // NYC credits are nested under NY
+  if (stateCode === "NY" && metadata.stateCreditsByState.NYC) {
+    return [...entries, ...metadata.stateCreditsByState.NYC];
+  }
+  return entries;
+}
+
 // ---------- situation construction ----------
 
 export function createSituation(
@@ -111,7 +124,7 @@ export function createSituation(
   };
 }
 
-function addOutputVariables(situation, year) {
+function addOutputVariables(situation, year, stateCode) {
   // Aggregates — all are household-level
   const hh = situation.households["your household"];
   for (const v of metadata.aggregates) {
@@ -137,6 +150,19 @@ function addOutputVariables(situation, year) {
     const person = situation.people[personName];
     for (const v of DETAIL_BY_ENTITY.person) {
       person[v] = { [year]: null };
+    }
+  }
+
+  // Per-state credit variables (only for the selected state)
+  if (stateCode) {
+    for (const entry of getStateCreditEntries(stateCode)) {
+      if (entry.entity === "person") {
+        for (const person of Object.values(situation.people)) {
+          person[entry.variable] = { [year]: null };
+        }
+      } else {
+        tu[entry.variable] = { [year]: null };
+      }
     }
   }
 
@@ -282,9 +308,16 @@ export async function getPrograms(
     headAge,
     spouseAge,
   );
-  addOutputVariables(situation, year);
+  addOutputVariables(situation, year, stateCode);
 
   const result = await callApi(situation);
+
+  // Per-state credits: use label as key for display
+  const stateCreditEntries = getStateCreditEntries(stateCode);
+  const perStateDict = {};
+  for (const entry of stateCreditEntries) {
+    perStateDict[entry.label] = extractMetaVal(result, entry, year);
+  }
 
   return {
     aggregates: {
@@ -294,11 +327,15 @@ export async function getPrograms(
       householdRefundableCredits: extractMetaVal(result, metadata.aggregates[3], year),
       householdTaxBeforeCredits: extractMetaVal(result, metadata.aggregates[4], year),
       healthcareBenefitValue: extractMetaVal(result, metadata.aggregates[5], year),
+      householdRefundableStateCredits: extractMetaVal(result, metadata.aggregates[6], year),
     },
     benefits: extractMetaDict(result, metadata.benefits, year),
     health: extractMetaDict(result, metadata.healthcare, year),
     credits: extractMetaDict(result, metadata.credits, year),
-    stateCredits: extractMetaDict(result, metadata.stateCredits, year),
+    stateCredits: {
+      state_refundable_credits: extractMetaVal(result, metadata.stateCredits[0], year),
+      ...perStateDict,
+    },
     taxes: extractMetaDict(result, metadata.taxes, year),
     stateTaxes: extractMetaDict(result, metadata.stateTaxes, year),
   };
@@ -431,6 +468,7 @@ export async function getHeatmapData(
   }
 
   // Build delta grids for the aggregate heatmap displays
+  // All variables here are household-level, so they vary correctly in 2D axes.
   const gridVars = [
     "household_net_income",
     "household_net_income_including_health_benefits",
@@ -438,7 +476,7 @@ export async function getHeatmapData(
     "household_refundable_tax_credits",
     "household_tax_before_refundable_credits",
     "healthcare_benefit_value",
-    "state_refundable_credits",
+    "household_refundable_state_tax_credits",
   ];
   const tabNames = [
     "Net Income",
@@ -452,26 +490,26 @@ export async function getHeatmapData(
 
   const grids = {};
 
-  for (let v = 0; v < gridVars.length; v++) {
-    const varName = gridVars[v];
-    const marriedFlat = marriedData[varName];
-    const headFlat = headData[varName];
-    const spouseFlat = spouseData[varName];
-
+  function buildDeltaGrid(marriedFlat, headFlat, spouseFlat) {
     const marriedGrid = [];
     for (let i = 0; i < count; i++) {
       marriedGrid.push(marriedFlat.slice(i * count, (i + 1) * count));
     }
-
     const deltaGrid = marriedGrid.map((row, i) =>
       row.map((val, j) => val - (headFlat[i] + spouseFlat[j])),
     );
-
     // Transpose: API returns head-major (row=head, col=spouse) but Plotly
     // z[row][col] maps to y[row],x[col] and x=head, y=spouse, so we need
     // row=spouse, col=head.
-    const transposed = deltaGrid[0].map((_, col) =>
+    return deltaGrid[0].map((_, col) =>
       deltaGrid.map((row) => row[col]),
+    );
+  }
+
+  for (let v = 0; v < gridVars.length; v++) {
+    const varName = gridVars[v];
+    const transposed = buildDeltaGrid(
+      marriedData[varName], headData[varName], spouseData[varName],
     );
 
     if (varName === "household_tax_before_refundable_credits") {
@@ -480,6 +518,13 @@ export async function getHeatmapData(
       grids[tabNames[v]] = transposed;
     }
   }
+
+  // Federal Credits = Total Credits - State Credits (both household-level)
+  const totalCreditsGrid = grids["Refundable Tax Credits"];
+  const stateCreditsGrid = grids["State Credits"];
+  grids["Federal Credits"] = totalCreditsGrid.map((row, i) =>
+    row.map((val, j) => val - stateCreditsGrid[i][j]),
+  );
 
   return { grids, maxIncome, count, programData };
 }
@@ -509,6 +554,7 @@ export function buildCellResults(programData, headIdx, spouseIdx, count) {
         healthcareBenefitValue: getVal("healthcare_benefit_value", scenario),
         householdRefundableCredits: getVal("household_refundable_tax_credits", scenario),
         householdTaxBeforeCredits: getVal("household_tax_before_refundable_credits", scenario),
+        householdRefundableStateCredits: getVal("household_refundable_state_tax_credits", scenario),
       },
       benefits: buildDict(metadata.benefits, scenario),
       health: buildDict(metadata.healthcare, scenario),

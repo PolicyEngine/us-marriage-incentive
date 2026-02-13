@@ -169,26 +169,591 @@
   ],
   "stateCredits": [
     {
-      "variable": "state_eitc",
-      "entity": "tax_unit",
-      "label": "State Earned Income Tax Credit"
-    },
-    {
-      "variable": "state_ctc",
-      "entity": "tax_unit",
-      "label": "State Child Tax Credit"
-    },
-    {
-      "variable": "state_cdcc",
-      "entity": "tax_unit",
-      "label": "State Child and Dependent Care Tax Credit"
-    },
-    {
       "variable": "state_refundable_credits",
       "entity": "tax_unit",
       "label": "state refundable credits"
     }
   ],
+  "stateCreditsByState": {
+    "AZ": [
+      {
+        "variable": "az_increased_excise_tax_credit",
+        "entity": "tax_unit",
+        "label": "Arizona Increased Excise Tax Credit"
+      },
+      {
+        "variable": "az_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "Arizona Property Tax Credit"
+      }
+    ],
+    "CA": [
+      {
+        "variable": "ca_foster_youth_tax_credit",
+        "entity": "tax_unit",
+        "label": "California foster youth tax credit"
+      },
+      {
+        "variable": "ca_eitc",
+        "entity": "tax_unit",
+        "label": "CalEITC"
+      },
+      {
+        "variable": "ca_yctc",
+        "entity": "tax_unit",
+        "label": "California Young Child Tax Credit"
+      },
+      {
+        "variable": "ca_sf_wftc",
+        "entity": "tax_unit",
+        "label": "San Francisco Working Families Tax Credit"
+      }
+    ],
+    "CO": [
+      {
+        "variable": "co_ctc",
+        "entity": "tax_unit",
+        "label": "Colorado child tax credit"
+      },
+      {
+        "variable": "co_cdcc",
+        "entity": "tax_unit",
+        "label": "Colorado Child Care Expenses Credit"
+      },
+      {
+        "variable": "co_family_affordability_credit",
+        "entity": "person",
+        "label": "Colorado Family Affordability Credit"
+      },
+      {
+        "variable": "co_low_income_cdcc",
+        "entity": "tax_unit",
+        "label": "Colorado Low-income Child Care Expenses Credit"
+      },
+      {
+        "variable": "co_income_qualified_senior_housing_credit",
+        "entity": "tax_unit",
+        "label": "Colorado Income Qualified Senior Housing Income Tax Credit"
+      },
+      {
+        "variable": "co_eitc",
+        "entity": "tax_unit",
+        "label": "Colorado EITC"
+      },
+      {
+        "variable": "co_sales_tax_refund",
+        "entity": "tax_unit",
+        "label": "Colorado sales tax refund"
+      },
+      {
+        "variable": "co_care_worker_credit",
+        "entity": "tax_unit",
+        "label": "Colorado Care Worker Tax Credit"
+      }
+    ],
+    "CT": [
+      {
+        "variable": "ct_eitc",
+        "entity": "tax_unit",
+        "label": "Connecticut Earned Income Tax Credit"
+      }
+    ],
+    "DC": [
+      {
+        "variable": "dc_eitc",
+        "entity": "tax_unit",
+        "label": "DC EITC"
+      },
+      {
+        "variable": "dc_ptc",
+        "entity": "tax_unit",
+        "label": "DC property tax credit"
+      },
+      {
+        "variable": "dc_kccatc",
+        "entity": "tax_unit",
+        "label": "DC keep child care affordable tax credit"
+      },
+      {
+        "variable": "dc_ctc",
+        "entity": "tax_unit",
+        "label": "DC Child Tax Credit"
+      }
+    ],
+    "DE": [
+      {
+        "variable": "de_refundable_eitc",
+        "entity": "tax_unit",
+        "label": "Delaware refundable EITC"
+      }
+    ],
+    "HI": [
+      {
+        "variable": "hi_food_excise_credit",
+        "entity": "tax_unit",
+        "label": "Hawaii Food/Excise Tax Credit"
+      },
+      {
+        "variable": "hi_cdcc",
+        "entity": "tax_unit",
+        "label": "Hawaii child and dependent care credit"
+      },
+      {
+        "variable": "hi_tax_credit_for_low_income_household_renters",
+        "entity": "tax_unit",
+        "label": "Hawaii low income household renters tax credit"
+      },
+      {
+        "variable": "hi_eitc",
+        "entity": "tax_unit",
+        "label": "Hawaii earned income tax credit"
+      }
+    ],
+    "IA": [
+      {
+        "variable": "ia_cdcc",
+        "entity": "tax_unit",
+        "label": "Iowa child/dependent care credit"
+      },
+      {
+        "variable": "ia_eitc",
+        "entity": "tax_unit",
+        "label": "Iowa earned income tax credit"
+      }
+    ],
+    "ID": [
+      {
+        "variable": "id_grocery_credit",
+        "entity": "tax_unit",
+        "label": "Idaho grocery credit"
+      },
+      {
+        "variable": "id_aged_or_disabled_credit",
+        "entity": "tax_unit",
+        "label": "Idaho aged or disabled credit"
+      }
+    ],
+    "IL": [
+      {
+        "variable": "il_pass_through_withholding",
+        "entity": "tax_unit",
+        "label": "IL Pass-Through Withholding"
+      },
+      {
+        "variable": "il_pass_through_entity_tax_credit",
+        "entity": "tax_unit",
+        "label": "IL Pass-Through Entity Tax Credit"
+      },
+      {
+        "variable": "il_eitc",
+        "entity": "tax_unit",
+        "label": "IL EITC"
+      },
+      {
+        "variable": "il_ctc",
+        "entity": "tax_unit",
+        "label": "Illinois Child Tax Credit"
+      }
+    ],
+    "IN": [
+      {
+        "variable": "in_eitc",
+        "entity": "tax_unit",
+        "label": "Indiana earned income tax credit"
+      },
+      {
+        "variable": "in_unified_elderly_tax_credit",
+        "entity": "tax_unit",
+        "label": "Indiana unified elderly tax credit"
+      }
+    ],
+    "KS": [
+      {
+        "variable": "ks_refundable_eitc",
+        "entity": "tax_unit",
+        "label": "Kansas refundable EITC amount"
+      }
+    ],
+    "LA": [
+      {
+        "variable": "la_refundable_cdcc",
+        "entity": "tax_unit",
+        "label": "Louisiana refundable Child and Dependent Care Credit"
+      },
+      {
+        "variable": "la_eitc",
+        "entity": "tax_unit",
+        "label": "Louisiana Earned Income Tax Credit"
+      }
+    ],
+    "MA": [
+      {
+        "variable": "ma_eitc",
+        "entity": "tax_unit",
+        "label": "MA EITC"
+      },
+      {
+        "variable": "ma_child_and_family_credit_or_dependent_care_credit",
+        "entity": "tax_unit",
+        "label": "MA dependent or dependent care credit"
+      },
+      {
+        "variable": "ma_senior_circuit_breaker",
+        "entity": "tax_unit",
+        "label": "MA Senior Circuit Breaker Credit"
+      },
+      {
+        "variable": "ma_covid_19_essential_employee_premium_pay_program",
+        "entity": "person",
+        "label": "MA COVID 19 Essential Employee Premium Pay Program"
+      }
+    ],
+    "ME": [
+      {
+        "variable": "me_refundable_child_care_credit",
+        "entity": "tax_unit",
+        "label": "Maine refundable child care credit"
+      },
+      {
+        "variable": "me_eitc",
+        "entity": "tax_unit",
+        "label": "Maine EITC"
+      },
+      {
+        "variable": "me_sales_tax_fairness_credit",
+        "entity": "tax_unit",
+        "label": "Maine sales tax fairness credit"
+      },
+      {
+        "variable": "me_property_tax_fairness_credit",
+        "entity": "tax_unit",
+        "label": "Maine property tax fairness credit"
+      },
+      {
+        "variable": "me_dependent_exemption_credit",
+        "entity": "tax_unit",
+        "label": "Maine dependent exemption credit"
+      }
+    ],
+    "MD": [
+      {
+        "variable": "md_refundable_cdcc",
+        "entity": "tax_unit",
+        "label": "MD refundable CDCC"
+      },
+      {
+        "variable": "md_refundable_eitc",
+        "entity": "tax_unit",
+        "label": "MD EITC refundable State tax credit"
+      },
+      {
+        "variable": "md_montgomery_eitc",
+        "entity": "tax_unit",
+        "label": "Montgomery County, Maryland EITC"
+      },
+      {
+        "variable": "md_ctc",
+        "entity": "tax_unit",
+        "label": "Maryland Child Tax Credit"
+      }
+    ],
+    "MI": [
+      {
+        "variable": "mi_eitc",
+        "entity": "tax_unit",
+        "label": "Michigan Earned Income Tax Credit"
+      },
+      {
+        "variable": "mi_home_heating_credit",
+        "entity": "tax_unit",
+        "label": "Michigan home heating credit"
+      },
+      {
+        "variable": "mi_homestead_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "Michigan homestead property tax credit"
+      }
+    ],
+    "MN": [
+      {
+        "variable": "mn_cdcc",
+        "entity": "tax_unit",
+        "label": "Minnesota child and dependent care expense credit"
+      },
+      {
+        "variable": "mn_child_and_working_families_credits",
+        "entity": "tax_unit",
+        "label": "Minnesota child and working families credits"
+      },
+      {
+        "variable": "mn_k12_education_credit",
+        "entity": "tax_unit",
+        "label": "Minnesota K-12 Education Credit"
+      }
+    ],
+    "MO": [
+      {
+        "variable": "mo_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "Missouri property tax credit"
+      }
+    ],
+    "MT": [
+      {
+        "variable": "mt_refundable_credits_before_renter_credit",
+        "entity": "person",
+        "label": "Montana refundable credits before adding the elderly homeowner or renter credit"
+      },
+      {
+        "variable": "mt_elderly_homeowner_or_renter_credit",
+        "entity": "person",
+        "label": "Montana Elderly Homeowner/Renter Credit"
+      }
+    ],
+    "NE": [
+      {
+        "variable": "ne_cdcc_refundable",
+        "entity": "tax_unit",
+        "label": "Nebraska refundable cdcc"
+      },
+      {
+        "variable": "ne_eitc",
+        "entity": "tax_unit",
+        "label": "NE EITC amount"
+      },
+      {
+        "variable": "ne_refundable_ctc",
+        "entity": "tax_unit",
+        "label": "Nebraska refundable Child Tax Credit"
+      },
+      {
+        "variable": "ne_school_readiness_credit",
+        "entity": "person",
+        "label": "Nebraska school readiness tax credit"
+      }
+    ],
+    "NM": [
+      {
+        "variable": "nm_cdcc",
+        "entity": "tax_unit",
+        "label": "New Mexico dependent child day care credit"
+      },
+      {
+        "variable": "nm_ctc",
+        "entity": "tax_unit",
+        "label": "New Mexico child income tax credit"
+      },
+      {
+        "variable": "nm_medical_expense_credit",
+        "entity": "tax_unit",
+        "label": "New Mexico unreimbursed medical expense care credit"
+      },
+      {
+        "variable": "nm_eitc",
+        "entity": "tax_unit",
+        "label": "New Mexico EITC"
+      },
+      {
+        "variable": "nm_low_income_comprehensive_tax_rebate",
+        "entity": "tax_unit",
+        "label": "New Mexico low income comprehensive tax rebate"
+      },
+      {
+        "variable": "nm_property_tax_rebate",
+        "entity": "tax_unit",
+        "label": "New Mexico property tax rebate"
+      }
+    ],
+    "NJ": [
+      {
+        "variable": "nj_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "New Jersey property tax credit"
+      },
+      {
+        "variable": "nj_eitc",
+        "entity": "tax_unit",
+        "label": "New Jersey EITC"
+      },
+      {
+        "variable": "nj_cdcc",
+        "entity": "tax_unit",
+        "label": "New Jersey CDCC"
+      },
+      {
+        "variable": "nj_ctc",
+        "entity": "tax_unit",
+        "label": "New Jersey Child Tax Credit"
+      }
+    ],
+    "NY": [
+      {
+        "variable": "ny_eitc",
+        "entity": "tax_unit",
+        "label": "New York EITC"
+      },
+      {
+        "variable": "ny_supplemental_eitc",
+        "entity": "tax_unit",
+        "label": "NY Supplemental EITC"
+      },
+      {
+        "variable": "ny_ctc",
+        "entity": "tax_unit",
+        "label": "NY CTC"
+      },
+      {
+        "variable": "ny_cdcc",
+        "entity": "tax_unit",
+        "label": "NY CDCC"
+      },
+      {
+        "variable": "ny_real_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "NY real property tax credit"
+      },
+      {
+        "variable": "ny_college_tuition_credit",
+        "entity": "tax_unit",
+        "label": "NY college tuition credit"
+      }
+    ],
+    "OK": [
+      {
+        "variable": "ok_ptc",
+        "entity": "tax_unit",
+        "label": "Oklahoma property tax credit"
+      },
+      {
+        "variable": "ok_stc",
+        "entity": "tax_unit",
+        "label": "Oklahoma sales tax credit"
+      },
+      {
+        "variable": "ok_eitc",
+        "entity": "tax_unit",
+        "label": "Oklahoma EITC"
+      }
+    ],
+    "OR": [
+      {
+        "variable": "or_eitc",
+        "entity": "tax_unit",
+        "label": "OR EITC"
+      },
+      {
+        "variable": "or_kicker",
+        "entity": "tax_unit",
+        "label": "OR Kicker"
+      },
+      {
+        "variable": "or_ctc",
+        "entity": "tax_unit",
+        "label": "Oregon Child Tax Credit"
+      },
+      {
+        "variable": "or_working_family_household_and_dependent_care_credit",
+        "entity": "tax_unit",
+        "label": "Oregon working family household and dependent care credit"
+      }
+    ],
+    "RI": [
+      {
+        "variable": "ri_eitc",
+        "entity": "tax_unit",
+        "label": "Rhode Island earned income tax credit"
+      },
+      {
+        "variable": "ri_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "Rhode Island property tax credit"
+      }
+    ],
+    "SC": [
+      {
+        "variable": "sc_tuition_credit",
+        "entity": "person",
+        "label": "South Carolina Tuition Credit"
+      }
+    ],
+    "WA": [
+      {
+        "variable": "wa_working_families_tax_credit",
+        "entity": "tax_unit",
+        "label": "Washington Working Families Tax Credit"
+      }
+    ],
+    "NYC": [
+      {
+        "variable": "nyc_cdcc",
+        "entity": "tax_unit",
+        "label": "NYC Child and Dependent Care Credit"
+      },
+      {
+        "variable": "nyc_eitc",
+        "entity": "tax_unit",
+        "label": "NYC EITC"
+      },
+      {
+        "variable": "nyc_school_tax_credit",
+        "entity": "tax_unit",
+        "label": "NYC School Tax Credit"
+      }
+    ],
+    "VA": [
+      {
+        "variable": "va_refundable_eitc",
+        "entity": "tax_unit",
+        "label": "Virginia refundable earned income tax credit"
+      }
+    ],
+    "VT": [
+      {
+        "variable": "vt_eitc",
+        "entity": "tax_unit",
+        "label": "Vermont earned income tax credit"
+      },
+      {
+        "variable": "vt_cdcc",
+        "entity": "tax_unit",
+        "label": "Vermont child care and dependent care credit"
+      },
+      {
+        "variable": "vt_ctc",
+        "entity": "tax_unit",
+        "label": "Vermont child tax credit"
+      },
+      {
+        "variable": "vt_veteran_tax_credit",
+        "entity": "tax_unit",
+        "label": "Vermont veteran tax credit"
+      }
+    ],
+    "WI": [
+      {
+        "variable": "wi_earned_income_credit",
+        "entity": "tax_unit",
+        "label": "Wisconsin earned income credit (WI EITC)"
+      },
+      {
+        "variable": "wi_homestead_credit",
+        "entity": "tax_unit",
+        "label": "Wisconsin homestead credit"
+      }
+    ],
+    "WV": [
+      {
+        "variable": "wv_sctc",
+        "entity": "tax_unit",
+        "label": "West Virginia senior citizens tax credit"
+      },
+      {
+        "variable": "wv_homestead_excess_property_tax_credit",
+        "entity": "tax_unit",
+        "label": "West Virginia homestead excess property tax credit"
+      }
+    ]
+  },
   "stateTaxes": [
     {
       "variable": "state_income_tax_before_refundable_credits",
@@ -226,6 +791,11 @@
       "variable": "healthcare_benefit_value",
       "entity": "household",
       "label": "Cash equivalent of health coverage"
+    },
+    {
+      "variable": "household_refundable_state_tax_credits",
+      "entity": "household",
+      "label": "refundable State income tax credits"
     }
   ]
 }

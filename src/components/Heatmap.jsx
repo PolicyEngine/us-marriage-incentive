@@ -17,7 +17,7 @@ const VALENTINE_SCALE = [
   [1, "#BE185D"],
 ];
 
-export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false, onCellClick, selectedCell }) {
+export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false, onCellClick, selectedCell, label = "Net Change" }) {
   if (!grid || grid.length === 0) {
     return <p className="loading">No heatmap data available.</p>;
   }
@@ -71,7 +71,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
 
   return (
     <div className="heatmap-section">
-      <h3>Click any cell to see its breakdown:</h3>
+      <h3>Change in {label}</h3>
       <Plot
         data={[
           {
@@ -85,7 +85,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
             xgap: 1,
             ygap: 1,
             colorbar: {
-              title: { text: "Net Change", side: "right", font: { size: 12 } },
+              title: { text: `Change in ${label}`, side: "right", font: { size: 12 } },
               tickprefix: "$",
               thickness: 15,
               len: 0.9,
@@ -93,7 +93,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
               xpad: 15,
             },
             hovertemplate:
-              "You: %{x}<br>Partner: %{y}<br>Change: %{z:$,.0f}<extra></extra>",
+              `Your Income: %{x}<br>Spouse Income: %{y}<br>Change in ${label}: %{z:$,.0f}<extra></extra>`,
           },
           // Marker — adapt colors to cell brightness
           {
@@ -111,7 +111,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
             textposition: "top center",
             textfont: { size: 11, color: onDark ? "white" : "#1E293B", family: "-apple-system, BlinkMacSystemFont, sans-serif" },
             name: "Your situation",
-            hovertemplate: `Your situation<br>Change: $${Math.round(markerVal).toLocaleString()}<extra></extra>`,
+            hovertemplate: `Your situation<br>Your Income: ${markerX}<br>Spouse Income: ${markerY}<br>Change in ${label}: $${Math.round(markerVal).toLocaleString()}<extra></extra>`,
             showlegend: false,
           },
         ]}
