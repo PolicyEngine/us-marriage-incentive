@@ -383,9 +383,14 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
   }
 
   if (tab === "state") {
+    // Strip the aggregate key only when per-state breakout entries exist;
+    // otherwise keep it so we still show a row (e.g. heatmap cell clicks
+    // or states without discovered per-state credits).
     const strip = (d) => {
       const o = { ...d };
-      delete o.state_refundable_credits;
+      if (Object.keys(o).length > 1) {
+        delete o.state_refundable_credits;
+      }
       return o;
     };
     return buildBreakdownRows(
