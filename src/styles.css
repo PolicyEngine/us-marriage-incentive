@@ -569,32 +569,6 @@ body {
   color: var(--color-primary-hover);
 }
 
-/* Cell selection banner */
-.cell-selection-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.4rem 1rem;
-  background: #FFFBEB;
-  border-left: 4px solid #F59E0B;
-  font-size: 0.82rem;
-  color: #92400E;
-  gap: 0.5rem;
-}
-.cell-selection-banner button {
-  background: none;
-  border: 1px solid #D97706;
-  color: #92400E;
-  border-radius: 4px;
-  padding: 0.2rem 0.6rem;
-  cursor: pointer;
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-.cell-selection-banner button:hover {
-  background: #FEF3C7;
-}
-
 /* Tabs */
 .tab-bar {
   display: flex;
@@ -751,14 +725,6 @@ body {
   font-weight: 600;
   color: var(--color-table-first-row);
   border-bottom: 2px solid var(--color-headline-border);
-}
-
-.data-table--transposed td {
-  text-align: right;
-}
-
-.data-table--transposed .row-label {
-  text-align: left;
 }
 
 /* ---- Heatmap ---- */

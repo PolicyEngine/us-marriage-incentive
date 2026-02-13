@@ -203,12 +203,25 @@ export default function ResultsDisplay({
     }
   }
 
+  const heatmapProps = heatmapGrid ? {
+    grid: heatmapGrid,
+    headIncome,
+    spouseIncome,
+    valentine,
+    maxIncome: heatmapData?.maxIncome || 80000,
+    count: heatmapData?.count || 33,
+    markerDelta,
+    onCellClick: heatmapData?.programData ? handleCellClick : undefined,
+    selectedCell: cellSelection,
+    label: heatmapKey,
+  } : null;
+
   const heatmapContent = heatmapLoading ? (
     <p className="loading">
       <span className="spinner" />
       Loading heatmap...
     </p>
-  ) : heatmapGrid ? (
+  ) : heatmapProps ? (
     <Suspense
       fallback={
         <p className="loading">
@@ -217,19 +230,7 @@ export default function ResultsDisplay({
         </p>
       }
     >
-      <Heatmap
-        grid={heatmapGrid}
-        headIncome={headIncome}
-        spouseIncome={spouseIncome}
-        valentine={valentine}
-        maxIncome={heatmapData?.maxIncome || 80000}
-        count={heatmapData?.count || 33}
-        markerDelta={markerDelta}
-        fullscreen={fullscreen}
-        onCellClick={heatmapData?.programData ? handleCellClick : undefined}
-        selectedCell={cellSelection}
-        label={heatmapKey}
-      />
+      <Heatmap {...heatmapProps} fullscreen={fullscreen} />
     </Suspense>
   ) : null;
 
@@ -280,7 +281,7 @@ export default function ResultsDisplay({
         )}
       </div>
 
-      {fullscreen && heatmapGrid && (
+      {fullscreen && heatmapProps && (
         <div className="fullscreen-overlay" onClick={() => setFullscreen(false)}>
           <div className="fullscreen-content" onClick={(e) => e.stopPropagation()}>
             <button
@@ -290,19 +291,7 @@ export default function ResultsDisplay({
               Close
             </button>
             <Suspense fallback={null}>
-              <Heatmap
-                grid={heatmapGrid}
-                headIncome={headIncome}
-                spouseIncome={spouseIncome}
-                valentine={valentine}
-                maxIncome={heatmapData?.maxIncome || 80000}
-                count={heatmapData?.count || 33}
-                markerDelta={markerDelta}
-                fullscreen
-                onCellClick={heatmapData?.programData ? handleCellClick : undefined}
-                selectedCell={cellSelection}
-                label={heatmapKey}
-              />
+              <Heatmap {...heatmapProps} fullscreen />
             </Suspense>
           </div>
         </div>
