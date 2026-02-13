@@ -341,15 +341,19 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
   }
 
   if (tab === "credits") {
+    // householdRefundableCredits includes state credits, so subtract them
+    // to get the federal-only aggregate for the "Other" residual.
+    const fedAgg = (r) =>
+      r.aggregates.householdRefundableCredits - (r.stateCredits?.state_refundable_credits || 0);
     const rows = buildBreakdownRows(
       married.credits,
       headSingle.credits,
       spouseSingle.credits,
     );
     addOtherRow(rows, "Other Credits",
-      married.aggregates.householdRefundableCredits,
-      headSingle.aggregates.householdRefundableCredits,
-      spouseSingle.aggregates.householdRefundableCredits,
+      fedAgg(married),
+      fedAgg(headSingle),
+      fedAgg(spouseSingle),
       sumDict(married.credits),
       sumDict(headSingle.credits),
       sumDict(spouseSingle.credits),
