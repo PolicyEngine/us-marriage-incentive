@@ -10,7 +10,7 @@ const TABS = [
   { key: "benefits", label: "Benefits", heatmapKey: "Benefits" },
   { key: "healthcare", label: "Healthcare", heatmapKey: "Healthcare Benefits" },
   { key: "credits", label: "Federal Credits", heatmapKey: "Refundable Tax Credits" },
-  { key: "state", label: "State Credits", heatmapKey: "Net Income" },
+  { key: "state", label: "State Credits", heatmapKey: "State Credits" },
 ];
 
 function DataTable({ rows }) {

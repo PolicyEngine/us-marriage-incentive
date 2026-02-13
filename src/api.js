@@ -1,52 +1,48 @@
+import metadata from "./metadata.json";
+
 const API_BASE = "https://api.policyengine.org";
 export const DEFAULT_YEAR = "2026";
 export const AVAILABLE_YEARS = ["2024", "2025", "2026", "2027", "2028"];
 export const DEFAULT_AGE = 40;
 
-// Variables organized by entity level (verified against the API)
-const SPM_UNIT_BENEFITS = [
-  "snap",
-  "tanf",
-  "free_school_meals",
-  "reduced_price_school_meals",
-  "lifeline",
-  "acp",
+// ---------- entity-aware helpers for metadata groups ----------
+
+// Container names used in the situation / response for each entity type
+const ENTITY_CONTAINERS = {
+  household: { key: "households", name: "your household" },
+  tax_unit: { key: "tax_units", name: "your tax unit" },
+  spm_unit: { key: "spm_units", name: "your spm_unit" },
+};
+
+/**
+ * All detail variable entries from metadata (every category except aggregates).
+ */
+const ALL_DETAIL_VARS = [
+  ...metadata.benefits,
+  ...metadata.credits,
+  ...metadata.taxes,
+  ...metadata.healthcare,
+  ...metadata.stateCredits,
+  ...metadata.stateTaxes,
 ];
 
-const PERSON_BENEFITS = ["wic", "ssi", "social_security", "head_start", "early_head_start"];
+/**
+ * All variables (detail + aggregates) — used when building heatmap programData.
+ */
+const ALL_VARS = [...ALL_DETAIL_VARS, ...metadata.aggregates];
 
-// Healthcare variables are NOT part of household_benefits or household_net_income.
-// They feed into healthcare_benefit_value and household_net_income_including_health_benefits.
-const HEALTH_PERSON_VARS = ["medicaid", "per_capita_chip"];
-const HEALTH_TAX_UNIT_VARS = ["premium_tax_credit"];
+// Group detail vars by entity for efficient iteration
+function groupByEntity(vars) {
+  const groups = { household: [], tax_unit: [], spm_unit: [], person: [] };
+  for (const v of vars) {
+    (groups[v.entity] || []).push(v.variable);
+  }
+  return groups;
+}
 
-const TAX_UNIT_CREDITS = ["eitc", "ctc", "cdcc"];
+const DETAIL_BY_ENTITY = groupByEntity(ALL_DETAIL_VARS);
 
-const TAX_UNIT_STATE_CREDITS = [
-  "state_eitc",
-  "state_ctc",
-  "state_cdcc",
-  "state_refundable_credits",
-];
-
-const TAX_UNIT_TAXES = ["income_tax_before_refundable_credits"];
-
-const TAX_UNIT_STATE_TAXES = ["state_income_tax_before_refundable_credits"];
-
-const PERSON_TAXES = [
-  "self_employment_tax",
-  "employee_social_security_tax",
-  "employee_medicare_tax",
-];
-
-const HOUSEHOLD_VARS = [
-  "household_net_income",
-  "household_net_income_including_health_benefits",
-  "household_benefits",
-  "household_refundable_tax_credits",
-  "household_tax_before_refundable_credits",
-  "healthcare_benefit_value",
-];
+// ---------- situation construction ----------
 
 export function createSituation(
   stateCode,
@@ -116,39 +112,38 @@ export function createSituation(
 }
 
 function addOutputVariables(situation, year) {
+  // Aggregates — all are household-level
   const hh = situation.households["your household"];
-  hh.household_net_income = { [year]: null };
-  hh.household_benefits = { [year]: null };
-  hh.household_refundable_tax_credits = { [year]: null };
-  hh.household_tax_before_refundable_credits = { [year]: null };
-  hh.healthcare_benefit_value = { [year]: null };
-  hh.household_net_income_including_health_benefits = { [year]: null };
+  for (const v of metadata.aggregates) {
+    hh[v.variable] = { [year]: null };
+  }
+
+  // Detail variables — placed at their correct entity container
+  for (const v of DETAIL_BY_ENTITY.household) {
+    hh[v] = { [year]: null };
+  }
+
+  const tu = situation.tax_units["your tax unit"];
+  for (const v of DETAIL_BY_ENTITY.tax_unit) {
+    tu[v] = { [year]: null };
+  }
+
+  const spm = situation.spm_units["your spm_unit"];
+  for (const v of DETAIL_BY_ENTITY.spm_unit) {
+    spm[v] = { [year]: null };
+  }
 
   for (const personName of Object.keys(situation.people)) {
     const person = situation.people[personName];
-    for (const v of [...PERSON_BENEFITS, ...HEALTH_PERSON_VARS, ...PERSON_TAXES]) {
+    for (const v of DETAIL_BY_ENTITY.person) {
       person[v] = { [year]: null };
     }
   }
 
-  const spm = situation.spm_units["your spm_unit"];
-  for (const v of SPM_UNIT_BENEFITS) {
-    spm[v] = { [year]: null };
-  }
-
-  const tu = situation.tax_units["your tax unit"];
-  for (const v of [
-    ...HEALTH_TAX_UNIT_VARS,
-    ...TAX_UNIT_CREDITS,
-    ...TAX_UNIT_STATE_CREDITS,
-    ...TAX_UNIT_TAXES,
-    ...TAX_UNIT_STATE_TAXES,
-  ]) {
-    tu[v] = { [year]: null };
-  }
-
   return situation;
 }
+
+// ---------- API call ----------
 
 async function callApi(situation) {
   const res = await fetch(`${API_BASE}/us/calculate`, {
@@ -168,6 +163,8 @@ async function callApi(situation) {
   }
   return data.result || data;
 }
+
+// ---------- extraction helpers ----------
 
 function extractVal(result, entity, name, variable, year) {
   try {
@@ -190,14 +187,6 @@ function extractArray(result, entity, name, variable, year) {
   }
 }
 
-function extractDict(result, entity, name, vars, year) {
-  const dict = {};
-  for (const v of vars) {
-    dict[v] = extractVal(result, entity, name, v, year);
-  }
-  return dict;
-}
-
 function sumPersonVar(result, variable, year) {
   const people = result?.people || {};
   let total = 0;
@@ -207,14 +196,6 @@ function sumPersonVar(result, variable, year) {
     else if (Array.isArray(val)) total += val[0] || 0;
   }
   return total;
-}
-
-function extractPersonDict(result, vars, year) {
-  const dict = {};
-  for (const v of vars) {
-    dict[v] = sumPersonVar(result, v, year);
-  }
-  return dict;
 }
 
 function sumPersonArray(result, variable, year) {
@@ -233,26 +214,51 @@ function sumPersonArray(result, variable, year) {
   return total || [];
 }
 
+// ---------- metadata-driven extraction ----------
+
+/**
+ * Extract a single scalar value for a metadata entry.
+ */
+function extractMetaVal(result, entry, year) {
+  const { variable, entity } = entry;
+  if (entity === "person") return sumPersonVar(result, variable, year);
+  const c = ENTITY_CONTAINERS[entity];
+  return extractVal(result, c.key, c.name, variable, year);
+}
+
+/**
+ * Extract a dict { variableName: value } for a list of metadata entries.
+ */
+function extractMetaDict(result, entries, year) {
+  const dict = {};
+  for (const entry of entries) {
+    dict[entry.variable] = extractMetaVal(result, entry, year);
+  }
+  return dict;
+}
+
+/**
+ * Extract an array value for a metadata entry (heatmap mode).
+ */
+function extractMetaArray(result, entry, year) {
+  const { variable, entity } = entry;
+  if (entity === "person") return sumPersonArray(result, variable, year);
+  const c = ENTITY_CONTAINERS[entity];
+  return extractArray(result, c.key, c.name, variable, year);
+}
+
+/**
+ * Extract all variables as arrays (for heatmap programData).
+ */
 function extractAllArrays(result, year) {
   const data = {};
-  for (const v of HOUSEHOLD_VARS) {
-    data[v] = extractArray(result, "households", "your household", v, year);
-  }
-  for (const v of SPM_UNIT_BENEFITS) {
-    data[v] = extractArray(result, "spm_units", "your spm_unit", v, year);
-  }
-  for (const v of [
-    ...TAX_UNIT_CREDITS, ...TAX_UNIT_STATE_CREDITS,
-    ...TAX_UNIT_TAXES, ...TAX_UNIT_STATE_TAXES,
-    ...HEALTH_TAX_UNIT_VARS,
-  ]) {
-    data[v] = extractArray(result, "tax_units", "your tax unit", v, year);
-  }
-  for (const v of [...PERSON_BENEFITS, ...HEALTH_PERSON_VARS, ...PERSON_TAXES]) {
-    data[v] = sumPersonArray(result, v, year);
+  for (const entry of ALL_VARS) {
+    data[entry.variable] = extractMetaArray(result, entry, year);
   }
   return data;
 }
+
+// ---------- public API ----------
 
 export async function getPrograms(
   stateCode,
@@ -280,108 +286,21 @@ export async function getPrograms(
 
   const result = await callApi(situation);
 
-  const spmBenefits = extractDict(
-    result,
-    "spm_units",
-    "your spm_unit",
-    SPM_UNIT_BENEFITS,
-    year,
-  );
-  const personBenefits = extractPersonDict(result, PERSON_BENEFITS, year);
-  const benefits = { ...spmBenefits, ...personBenefits };
-
-  // Healthcare variables (NOT part of household_benefits)
-  const healthPerson = extractPersonDict(result, HEALTH_PERSON_VARS, year);
-  const healthTu = extractDict(
-    result,
-    "tax_units",
-    "your tax unit",
-    HEALTH_TAX_UNIT_VARS,
-    year,
-  );
-  const health = { ...healthPerson, ...healthTu };
-
-  const tuTaxes = extractDict(
-    result,
-    "tax_units",
-    "your tax unit",
-    TAX_UNIT_TAXES,
-    year,
-  );
-  const personTaxes = extractPersonDict(result, PERSON_TAXES, year);
-  const taxes = { ...tuTaxes, ...personTaxes };
-
-  const stateTaxes = extractDict(
-    result,
-    "tax_units",
-    "your tax unit",
-    TAX_UNIT_STATE_TAXES,
-    year,
-  );
-
   return {
     aggregates: {
-      householdNetIncome: extractVal(
-        result,
-        "households",
-        "your household",
-        "household_net_income",
-        year,
-      ),
-      householdNetIncomeWithHealth: extractVal(
-        result,
-        "households",
-        "your household",
-        "household_net_income_including_health_benefits",
-        year,
-      ),
-      householdBenefits: extractVal(
-        result,
-        "households",
-        "your household",
-        "household_benefits",
-        year,
-      ),
-      healthcareBenefitValue: extractVal(
-        result,
-        "households",
-        "your household",
-        "healthcare_benefit_value",
-        year,
-      ),
-      householdRefundableCredits: extractVal(
-        result,
-        "households",
-        "your household",
-        "household_refundable_tax_credits",
-        year,
-      ),
-      householdTaxBeforeCredits: extractVal(
-        result,
-        "households",
-        "your household",
-        "household_tax_before_refundable_credits",
-        year,
-      ),
+      householdNetIncome: extractMetaVal(result, metadata.aggregates[0], year),
+      householdNetIncomeWithHealth: extractMetaVal(result, metadata.aggregates[1], year),
+      householdBenefits: extractMetaVal(result, metadata.aggregates[2], year),
+      householdRefundableCredits: extractMetaVal(result, metadata.aggregates[3], year),
+      householdTaxBeforeCredits: extractMetaVal(result, metadata.aggregates[4], year),
+      healthcareBenefitValue: extractMetaVal(result, metadata.aggregates[5], year),
     },
-    benefits,
-    health,
-    credits: extractDict(
-      result,
-      "tax_units",
-      "your tax unit",
-      TAX_UNIT_CREDITS,
-      year,
-    ),
-    stateCredits: extractDict(
-      result,
-      "tax_units",
-      "your tax unit",
-      TAX_UNIT_STATE_CREDITS,
-      year,
-    ),
-    taxes,
-    stateTaxes,
+    benefits: extractMetaDict(result, metadata.benefits, year),
+    health: extractMetaDict(result, metadata.healthcare, year),
+    credits: extractMetaDict(result, metadata.credits, year),
+    stateCredits: extractMetaDict(result, metadata.stateCredits, year),
+    taxes: extractMetaDict(result, metadata.taxes, year),
+    stateTaxes: extractMetaDict(result, metadata.stateTaxes, year),
   };
 }
 
@@ -433,7 +352,8 @@ export async function getCategorizedPrograms(
   return { married, headSingle, spouseSingle };
 }
 
-// Heatmap API calls
+// ---------- Heatmap API calls ----------
+
 export async function getHeatmapData(
   stateCode,
   children,
@@ -501,18 +421,12 @@ export async function getHeatmapData(
   const headData = extractAllArrays(headResult, year);
   const spouseData = extractAllArrays(spouseResult, year);
 
-  const ALL_VARS = [
-    ...HOUSEHOLD_VARS, ...SPM_UNIT_BENEFITS, ...PERSON_BENEFITS,
-    ...HEALTH_PERSON_VARS, ...HEALTH_TAX_UNIT_VARS,
-    ...TAX_UNIT_CREDITS, ...TAX_UNIT_STATE_CREDITS,
-    ...TAX_UNIT_TAXES, ...TAX_UNIT_STATE_TAXES, ...PERSON_TAXES,
-  ];
   const programData = {};
-  for (const v of ALL_VARS) {
-    programData[v] = {
-      married: marriedData[v] || [],
-      head: headData[v] || [],
-      spouse: spouseData[v] || [],
+  for (const entry of ALL_VARS) {
+    programData[entry.variable] = {
+      married: marriedData[entry.variable] || [],
+      head: headData[entry.variable] || [],
+      spouse: spouseData[entry.variable] || [],
     };
   }
 
@@ -524,6 +438,7 @@ export async function getHeatmapData(
     "household_refundable_tax_credits",
     "household_tax_before_refundable_credits",
     "healthcare_benefit_value",
+    "state_refundable_credits",
   ];
   const tabNames = [
     "Net Income",
@@ -532,6 +447,7 @@ export async function getHeatmapData(
     "Refundable Tax Credits",
     "Tax Before Refundable Credits",
     "Healthcare Benefits",
+    "State Credits",
   ];
 
   const grids = {};
@@ -578,9 +494,9 @@ export function buildCellResults(programData, headIdx, spouseIdx, count) {
     return 0;
   }
 
-  function buildDict(vars, scenario) {
+  function buildDict(metaEntries, scenario) {
     const d = {};
-    for (const v of vars) d[v] = getVal(v, scenario);
+    for (const entry of metaEntries) d[entry.variable] = getVal(entry.variable, scenario);
     return d;
   }
 
@@ -594,12 +510,12 @@ export function buildCellResults(programData, headIdx, spouseIdx, count) {
         householdRefundableCredits: getVal("household_refundable_tax_credits", scenario),
         householdTaxBeforeCredits: getVal("household_tax_before_refundable_credits", scenario),
       },
-      benefits: { ...buildDict(SPM_UNIT_BENEFITS, scenario), ...buildDict(PERSON_BENEFITS, scenario) },
-      health: { ...buildDict(HEALTH_PERSON_VARS, scenario), ...buildDict(HEALTH_TAX_UNIT_VARS, scenario) },
-      credits: buildDict(TAX_UNIT_CREDITS, scenario),
-      stateCredits: buildDict(TAX_UNIT_STATE_CREDITS, scenario),
-      taxes: { ...buildDict(TAX_UNIT_TAXES, scenario), ...buildDict(PERSON_TAXES, scenario) },
-      stateTaxes: buildDict(TAX_UNIT_STATE_TAXES, scenario),
+      benefits: buildDict(metadata.benefits, scenario),
+      health: buildDict(metadata.healthcare, scenario),
+      credits: buildDict(metadata.credits, scenario),
+      stateCredits: buildDict(metadata.stateCredits, scenario),
+      taxes: buildDict(metadata.taxes, scenario),
+      stateTaxes: buildDict(metadata.stateTaxes, scenario),
     };
   }
 

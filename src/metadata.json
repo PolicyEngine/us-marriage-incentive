@@ -1,0 +1,231 @@
+{
+  "benefits": [
+    {
+      "variable": "social_security",
+      "entity": "person",
+      "label": "Social Security"
+    },
+    {
+      "variable": "ssi",
+      "entity": "person",
+      "label": "SSI"
+    },
+    {
+      "variable": "snap",
+      "entity": "spm_unit",
+      "label": "SNAP allotment"
+    },
+    {
+      "variable": "wic",
+      "entity": "person",
+      "label": "WIC"
+    },
+    {
+      "variable": "free_school_meals",
+      "entity": "spm_unit",
+      "label": "free school meals"
+    },
+    {
+      "variable": "reduced_price_school_meals",
+      "entity": "spm_unit",
+      "label": "reduced price school meals"
+    },
+    {
+      "variable": "spm_unit_broadband_subsidy",
+      "entity": "spm_unit",
+      "label": "SPM unit broadband subsidy"
+    },
+    {
+      "variable": "tanf",
+      "entity": "spm_unit",
+      "label": "TANF"
+    },
+    {
+      "variable": "high_efficiency_electric_home_rebate",
+      "entity": "tax_unit",
+      "label": "High efficiency electric home rebate"
+    },
+    {
+      "variable": "residential_efficiency_electrification_rebate",
+      "entity": "tax_unit",
+      "label": "Residential efficiency and electrification rebate"
+    },
+    {
+      "variable": "unemployment_compensation",
+      "entity": "person",
+      "label": "unemployment compensation"
+    },
+    {
+      "variable": "head_start",
+      "entity": "person",
+      "label": "Head Start"
+    },
+    {
+      "variable": "early_head_start",
+      "entity": "person",
+      "label": "Early Head Start"
+    },
+    {
+      "variable": "basic_income",
+      "entity": "tax_unit",
+      "label": "basic income"
+    },
+    {
+      "variable": "spm_unit_capped_housing_subsidy",
+      "entity": "spm_unit",
+      "label": "Housing subsidies"
+    },
+    {
+      "variable": "household_state_benefits",
+      "entity": "household",
+      "label": "Household state benefits"
+    },
+    {
+      "variable": "commodity_supplemental_food_program",
+      "entity": "person",
+      "label": "Commodity Supplemental Food Program"
+    }
+  ],
+  "credits": [
+    {
+      "variable": "eitc",
+      "entity": "tax_unit",
+      "label": "Federal earned income credit"
+    },
+    {
+      "variable": "refundable_american_opportunity_credit",
+      "entity": "tax_unit",
+      "label": "Refundable American Opportunity Credit"
+    },
+    {
+      "variable": "refundable_ctc",
+      "entity": "tax_unit",
+      "label": "refundable CTC"
+    },
+    {
+      "variable": "recovery_rebate_credit",
+      "entity": "tax_unit",
+      "label": "Recovery Rebate Credit"
+    },
+    {
+      "variable": "refundable_payroll_tax_credit",
+      "entity": "tax_unit",
+      "label": "Refundable Payroll Tax Credit"
+    }
+  ],
+  "taxes": [
+    {
+      "variable": "employee_payroll_tax",
+      "entity": "tax_unit",
+      "label": "employee-side payroll tax"
+    },
+    {
+      "variable": "self_employment_tax",
+      "entity": "person",
+      "label": "self-employment tax"
+    },
+    {
+      "variable": "income_tax_before_refundable_credits",
+      "entity": "tax_unit",
+      "label": "Federal income tax before refundable credits"
+    },
+    {
+      "variable": "flat_tax",
+      "entity": "tax_unit",
+      "label": "Flat tax"
+    },
+    {
+      "variable": "household_state_tax_before_refundable_credits",
+      "entity": "household",
+      "label": "household State tax before refundable credits"
+    }
+  ],
+  "healthcare": [
+    {
+      "variable": "medicaid_cost",
+      "entity": "person",
+      "label": "Medicaid_cost"
+    },
+    {
+      "variable": "per_capita_chip",
+      "entity": "person",
+      "label": "Average CHIP payment"
+    },
+    {
+      "variable": "aca_ptc",
+      "entity": "tax_unit",
+      "label": "ACA premium tax credit for tax unit"
+    },
+    {
+      "variable": "co_omnisalud",
+      "entity": "tax_unit",
+      "label": "Colorado OmniSalud premium subsidy"
+    },
+    {
+      "variable": "or_healthier_oregon_cost",
+      "entity": "person",
+      "label": "Oregon Healthier Oregon benefit cost"
+    }
+  ],
+  "stateCredits": [
+    {
+      "variable": "state_eitc",
+      "entity": "tax_unit",
+      "label": "State Earned Income Tax Credit"
+    },
+    {
+      "variable": "state_ctc",
+      "entity": "tax_unit",
+      "label": "State Child Tax Credit"
+    },
+    {
+      "variable": "state_cdcc",
+      "entity": "tax_unit",
+      "label": "State Child and Dependent Care Tax Credit"
+    },
+    {
+      "variable": "state_refundable_credits",
+      "entity": "tax_unit",
+      "label": "state refundable credits"
+    }
+  ],
+  "stateTaxes": [
+    {
+      "variable": "state_income_tax_before_refundable_credits",
+      "entity": "tax_unit",
+      "label": "state income tax before refundable credits"
+    }
+  ],
+  "aggregates": [
+    {
+      "variable": "household_net_income",
+      "entity": "household",
+      "label": "net income"
+    },
+    {
+      "variable": "household_net_income_including_health_benefits",
+      "entity": "household",
+      "label": "Net income including health benefits"
+    },
+    {
+      "variable": "household_benefits",
+      "entity": "household",
+      "label": "benefits"
+    },
+    {
+      "variable": "household_refundable_tax_credits",
+      "entity": "household",
+      "label": "refundable tax credits"
+    },
+    {
+      "variable": "household_tax_before_refundable_credits",
+      "entity": "household",
+      "label": "total tax before refundable credits"
+    },
+    {
+      "variable": "healthcare_benefit_value",
+      "entity": "household",
+      "label": "Cash equivalent of health coverage"
+    }
+  ]
+}

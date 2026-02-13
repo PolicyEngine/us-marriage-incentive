@@ -68,11 +68,13 @@ const ACRONYMS = {
   tanf: "TANF",
   wic: "WIC",
   ssi: "SSI",
-  acp: "ACP",
+  chip: "CHIP",
   ctc: "CTC",
   cdcc: "CDCC",
-  chip: "CHIP",
+  ptc: "PTC",
+  aca: "ACA",
   per_capita_chip: "CHIP",
+  spm: "SPM",
 };
 
 export const PROGRAM_DESCRIPTIONS = {
@@ -86,7 +88,7 @@ export const PROGRAM_DESCRIPTIONS = {
   "Refundable Tax Credits":
     "Tax credits that can result in a payment even if you owe no tax. Includes EITC and CTC.",
   "Taxes Before Refundable Credits":
-    "Federal income tax, Social Security, and Medicare taxes before any refundable credits are applied.",
+    "Federal and state income tax, payroll taxes, and other taxes before any refundable credits are applied.",
   // Benefits
   SNAP: "Supplemental Nutrition Assistance Program. Benefits are based on household size and income; marriage combines both incomes.",
   TANF: "Temporary Assistance for Needy Families. Cash assistance with income limits that change when households merge.",
@@ -102,35 +104,60 @@ export const PROGRAM_DESCRIPTIONS = {
     "National School Lunch Program free meals. Eligibility based on household income relative to the poverty line.",
   "Reduced Price School Meals":
     "National School Lunch Program reduced-price meals. Based on household income between 130%–185% of poverty.",
-  Lifeline:
-    "FCC program providing discounted phone or internet service to low-income households.",
-  ACP: "Affordable Connectivity Program. Broadband subsidy based on household income or program participation.",
+  "SPM Unit Broadband Subsidy":
+    "Broadband internet subsidy for low-income households.",
+  "Unemployment Compensation":
+    "Unemployment insurance benefits for workers who have lost their jobs.",
+  "SPM Unit Capped Housing Subsidy":
+    "Housing subsidies including Section 8 vouchers and public housing assistance.",
+  "High Efficiency Electric Home Rebate":
+    "Rebate for purchasing high-efficiency electric home appliances under the Inflation Reduction Act.",
+  "Residential Efficiency Electrification Rebate":
+    "Rebate for home energy efficiency improvements and electrification under the Inflation Reduction Act.",
+  "Basic Income":
+    "Universal or targeted basic income programs.",
+  "Household State Benefits":
+    "State-specific benefit programs (e.g., CalWORKs, state supplements).",
+  "Commodity Supplemental Food Program":
+    "USDA program providing food packages to low-income elderly individuals.",
   "Other Benefits":
     "Additional government benefits not individually listed, as computed by PolicyEngine.",
   // Healthcare
-  Medicaid:
-    "Health coverage with income thresholds based on household size. Marriage can change eligibility.",
+  "Medicaid Cost":
+    "Cash equivalent value of Medicaid health coverage. Eligibility thresholds depend on household income; marriage can change eligibility.",
   CHIP:
     "Children's Health Insurance Program. Provides health coverage for children in families with incomes too high for Medicaid.",
-  "Premium Tax Credit":
-    "ACA marketplace health insurance subsidy. Based on household income relative to the poverty line.",
+  "ACA PTC":
+    "ACA marketplace premium tax credit. Subsidizes health insurance based on household income relative to the poverty line.",
+  "Co Omnisalud":
+    "Colorado OmniSalud program providing health coverage regardless of immigration status.",
+  "Or Healthier Oregon Cost":
+    "Oregon Healthier Oregon program extending health coverage to additional residents.",
   "Other Healthcare":
     "Additional healthcare benefits not individually listed, as computed by PolicyEngine.",
   // Credits
   EITC: "Earned Income Tax Credit. Phase-out thresholds are higher for married filers, but combined income can still reduce the credit.",
-  CTC: "Child Tax Credit. Income phase-outs differ by filing status; marriage can push income above thresholds.",
-  CDCC: "Child and Dependent Care Credit. Available to working parents; marriage changes eligible expenses and income limits.",
+  "Refundable CTC":
+    "Refundable portion of the Child Tax Credit. Income phase-outs differ by filing status; marriage can push income above thresholds.",
+  "Refundable American Opportunity Credit":
+    "Refundable portion of the American Opportunity education tax credit.",
+  "Recovery Rebate Credit":
+    "Economic stimulus payment delivered as a refundable tax credit.",
+  "Refundable Payroll Tax Credit":
+    "Refundable credit offsetting payroll taxes for eligible workers.",
   "Other Credits":
     "Additional refundable tax credits not individually listed, as computed by PolicyEngine.",
   // Taxes
-  "Income Tax Before Refundable Credits":
-    "Federal income tax calculated on combined income. Tax brackets for married filers are not exactly double single brackets.",
+  "Employee Payroll Tax":
+    "Employee-side Social Security (6.2%) and Medicare (1.45%) taxes. The additional Medicare tax threshold changes with marriage.",
   "Self Employment Tax":
     "Social Security and Medicare taxes on self-employment income. Calculated per person, unaffected by marriage.",
-  "Employee Social Security Tax":
-    "6.2% tax on wages up to the annual cap. Calculated per worker, generally unaffected by marital status.",
-  "Employee Medicare Tax":
-    "1.45% tax on all wages (plus 0.9% above $200k/$250k married). The additional Medicare tax threshold changes with marriage.",
+  "Income Tax Before Refundable Credits":
+    "Federal income tax calculated on combined income. Tax brackets for married filers are not exactly double single brackets.",
+  "Flat Tax":
+    "Flat tax on income, if applicable.",
+  "Household State Tax Before Refundable Credits":
+    "Total state income tax before applying state refundable credits.",
   // State credits
   "State EITC":
     "State-level Earned Income Tax Credit. Many states offer their own EITC as a percentage of the federal credit.",
@@ -331,24 +358,21 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
   }
 
   if (tab === "taxes") {
-    // Merge federal taxes, person taxes, and state taxes into one view
-    const alwaysShow = ["income_tax_before_refundable_credits", "state_income_tax_before_refundable_credits"];
-    const merge = (taxes, stateTaxes) => {
-      const d = { ...taxes, ...(stateTaxes || {}) };
-      for (const key of alwaysShow) if (!(key in d)) d[key] = 0;
-      return d;
-    };
-    const mMerged = merge(married.taxes, married.stateTaxes);
-    const hMerged = merge(headSingle.taxes, headSingle.stateTaxes);
-    const sMerged = merge(spouseSingle.taxes, spouseSingle.stateTaxes);
-    const rows = buildBreakdownRows(mMerged, hMerged, sMerged, alwaysShow);
+    // taxes dict now includes federal + state aggregate + payroll taxes
+    const alwaysShow = ["income_tax_before_refundable_credits", "household_state_tax_before_refundable_credits"];
+    const rows = buildBreakdownRows(
+      married.taxes,
+      headSingle.taxes,
+      spouseSingle.taxes,
+      alwaysShow,
+    );
     addOtherRow(rows, "Other Taxes",
       married.aggregates.householdTaxBeforeCredits,
       headSingle.aggregates.householdTaxBeforeCredits,
       spouseSingle.aggregates.householdTaxBeforeCredits,
-      sumDict(mMerged),
-      sumDict(hMerged),
-      sumDict(sMerged),
+      sumDict(married.taxes),
+      sumDict(headSingle.taxes),
+      sumDict(spouseSingle.taxes),
     );
     // Invert coloring: tax reduction = green, tax increase = red
     for (const row of rows) row.rawDelta = -row.rawDelta;
