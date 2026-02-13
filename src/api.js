@@ -419,7 +419,7 @@ export async function getHeatmapData(
       hAge,
       sAge,
     );
-    addOutputVariables(situation, year);
+    addOutputVariables(situation, year, stateCode);
 
     if (includeSpouse) {
       situation.axes = [
@@ -458,12 +458,15 @@ export async function getHeatmapData(
   const headData = extractAllArrays(headResult, year);
   const spouseData = extractAllArrays(spouseResult, year);
 
+  const stateCreditEntries = getStateCreditEntries(stateCode);
+
   const programData = {};
-  for (const entry of ALL_VARS) {
-    programData[entry.variable] = {
-      married: marriedData[entry.variable] || [],
-      head: headData[entry.variable] || [],
-      spouse: spouseData[entry.variable] || [],
+  for (const entry of [...ALL_VARS, ...stateCreditEntries]) {
+    const v = entry.variable;
+    programData[v] = {
+      married: marriedData[v] || extractMetaArray(marriedResult, entry, year),
+      head: headData[v] || extractMetaArray(headResult, entry, year),
+      spouse: spouseData[v] || extractMetaArray(spouseResult, entry, year),
     };
   }
 
@@ -526,10 +529,10 @@ export async function getHeatmapData(
     row.map((val, j) => val - stateCreditsGrid[i][j]),
   );
 
-  return { grids, maxIncome, count, programData };
+  return { grids, maxIncome, count, programData, stateCreditEntries };
 }
 
-export function buildCellResults(programData, headIdx, spouseIdx, count) {
+export function buildCellResults(programData, headIdx, spouseIdx, count, stateCreditEntries) {
   function getVal(varName, scenario) {
     const arr = programData[varName]?.[scenario];
     if (!arr || arr.length === 0) return 0;
@@ -542,6 +545,15 @@ export function buildCellResults(programData, headIdx, spouseIdx, count) {
   function buildDict(metaEntries, scenario) {
     const d = {};
     for (const entry of metaEntries) d[entry.variable] = getVal(entry.variable, scenario);
+    return d;
+  }
+
+  function buildStateCreditDict(scenario) {
+    const d = {};
+    d.state_refundable_credits = getVal("state_refundable_credits", scenario);
+    for (const entry of (stateCreditEntries || [])) {
+      d[entry.label] = getVal(entry.variable, scenario);
+    }
     return d;
   }
 
@@ -559,7 +571,7 @@ export function buildCellResults(programData, headIdx, spouseIdx, count) {
       benefits: buildDict(metadata.benefits, scenario),
       health: buildDict(metadata.healthcare, scenario),
       credits: buildDict(metadata.credits, scenario),
-      stateCredits: buildDict(metadata.stateCredits, scenario),
+      stateCredits: buildStateCreditDict(scenario),
       taxes: buildDict(metadata.taxes, scenario),
       stateTaxes: buildDict(metadata.stateTaxes, scenario),
     };

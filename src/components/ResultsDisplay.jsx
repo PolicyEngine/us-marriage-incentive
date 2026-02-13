@@ -161,6 +161,7 @@ export default function ResultsDisplay({
       cellSelection.headIdx,
       cellSelection.spouseIdx,
       heatmapData.count || 33,
+      heatmapData.stateCreditEntries,
     );
   }, [cellSelection, heatmapData]);
 
