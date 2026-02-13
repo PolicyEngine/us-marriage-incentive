@@ -2,11 +2,11 @@ import React from "react";
 import Plot from "react-plotly.js";
 
 const TEAL_SCALE = [
-  [0, "#1D4044"],
+  [0, "#1F2937"],
   [0.3, "#6B7280"],
   [0.5, "#F2F4F7"],
-  [0.7, "#81E6D9"],
-  [1, "#285E61"],
+  [0.65, "#81E6D9"],
+  [1, "#0D9488"],
 ];
 
 const VALENTINE_SCALE = [
@@ -42,7 +42,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
   const zMin = -absMax;
   const zMax = absMax;
 
-  const accentColor = valentine ? "#BE185D" : "#285E61";
+  const accentColor = valentine ? "#BE185D" : "#0D9488";
 
   // Marker position — moves to selected cell, defaults to "You are here"
   const defaultXi = Math.min(count - 1, Math.max(0, Math.round(headIncome / step)));
