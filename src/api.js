@@ -523,6 +523,7 @@ export async function getHeatmapData(
     "household_benefits",
     "household_refundable_tax_credits",
     "household_tax_before_refundable_credits",
+    "healthcare_benefit_value",
   ];
   const tabNames = [
     "Net Income",
@@ -530,6 +531,7 @@ export async function getHeatmapData(
     "Benefits",
     "Refundable Tax Credits",
     "Tax Before Refundable Credits",
+    "Healthcare Benefits",
   ];
 
   const grids = {};

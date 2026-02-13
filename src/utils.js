@@ -231,47 +231,45 @@ function addOtherRow(rows, label, aggMarried, aggHead, aggSpouse, trackedMarried
   });
 }
 
-export function computeTableData(results, tab) {
+export function computeTableData(results, tab, { showHealth = false } = {}) {
   const { married, headSingle, spouseSingle } = results;
 
   if (tab === "summary") {
-    return buildRows(
-      ["Net Income", "Healthcare Benefits", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"],
-      [
-        married.aggregates.householdNetIncome,
-        married.aggregates.healthcareBenefitValue,
-        married.aggregates.householdBenefits,
-        married.aggregates.householdRefundableCredits,
-        married.aggregates.householdTaxBeforeCredits,
-      ],
-      [
-        headSingle.aggregates.householdNetIncome +
-          spouseSingle.aggregates.householdNetIncome,
-        headSingle.aggregates.healthcareBenefitValue +
-          spouseSingle.aggregates.healthcareBenefitValue,
-        headSingle.aggregates.householdBenefits +
-          spouseSingle.aggregates.householdBenefits,
-        headSingle.aggregates.householdRefundableCredits +
-          spouseSingle.aggregates.householdRefundableCredits,
-        headSingle.aggregates.householdTaxBeforeCredits +
-          spouseSingle.aggregates.householdTaxBeforeCredits,
-      ],
-      [
-        headSingle.aggregates.householdNetIncome,
-        headSingle.aggregates.healthcareBenefitValue,
-        headSingle.aggregates.householdBenefits,
-        headSingle.aggregates.householdRefundableCredits,
-        headSingle.aggregates.householdTaxBeforeCredits,
-      ],
-      [
-        spouseSingle.aggregates.householdNetIncome,
-        spouseSingle.aggregates.healthcareBenefitValue,
-        spouseSingle.aggregates.householdBenefits,
-        spouseSingle.aggregates.householdRefundableCredits,
-        spouseSingle.aggregates.householdTaxBeforeCredits,
-      ],
-      false,
-    );
+    const netKey = showHealth ? "householdNetIncomeWithHealth" : "householdNetIncome";
+    const categories = showHealth
+      ? ["Net Income (incl. Healthcare)", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"]
+      : ["Net Income", "Healthcare Benefits", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"];
+
+    const mVals = [
+      married.aggregates[netKey],
+      ...(showHealth ? [] : [married.aggregates.healthcareBenefitValue]),
+      married.aggregates.householdBenefits,
+      married.aggregates.householdRefundableCredits,
+      married.aggregates.householdTaxBeforeCredits,
+    ];
+    const sVals = [
+      headSingle.aggregates[netKey] + spouseSingle.aggregates[netKey],
+      ...(showHealth ? [] : [headSingle.aggregates.healthcareBenefitValue + spouseSingle.aggregates.healthcareBenefitValue]),
+      headSingle.aggregates.householdBenefits + spouseSingle.aggregates.householdBenefits,
+      headSingle.aggregates.householdRefundableCredits + spouseSingle.aggregates.householdRefundableCredits,
+      headSingle.aggregates.householdTaxBeforeCredits + spouseSingle.aggregates.householdTaxBeforeCredits,
+    ];
+    const hVals = [
+      headSingle.aggregates[netKey],
+      ...(showHealth ? [] : [headSingle.aggregates.healthcareBenefitValue]),
+      headSingle.aggregates.householdBenefits,
+      headSingle.aggregates.householdRefundableCredits,
+      headSingle.aggregates.householdTaxBeforeCredits,
+    ];
+    const spVals = [
+      spouseSingle.aggregates[netKey],
+      ...(showHealth ? [] : [spouseSingle.aggregates.healthcareBenefitValue]),
+      spouseSingle.aggregates.householdBenefits,
+      spouseSingle.aggregates.householdRefundableCredits,
+      spouseSingle.aggregates.householdTaxBeforeCredits,
+    ];
+
+    return buildRows(categories, mVals, sVals, hVals, spVals, false);
   }
 
   if (tab === "benefits") {

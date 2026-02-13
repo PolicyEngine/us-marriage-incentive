@@ -8,7 +8,7 @@ const TABS = [
   { key: "summary", label: "Summary", heatmapKey: "Net Income" },
   { key: "taxes", label: "Taxes", heatmapKey: "Tax Before Refundable Credits" },
   { key: "benefits", label: "Benefits", heatmapKey: "Benefits" },
-  { key: "healthcare", label: "Healthcare", heatmapKey: "Net Income" },
+  { key: "healthcare", label: "Healthcare", heatmapKey: "Healthcare Benefits" },
   { key: "credits", label: "Federal Credits", heatmapKey: "Refundable Tax Credits" },
   { key: "state", label: "State", heatmapKey: "Net Income" },
 ];
@@ -174,11 +174,12 @@ export default function ResultsDisplay({
 
   const activeResults = cellResults || results;
 
-  const currentTab = TABS.find((t) => t.key === activeTab);
-  const rows = computeTableData(activeResults, activeTab);
+  const effectiveTab = (!showHealth && activeTab === "healthcare") ? "summary" : activeTab;
+  const currentTab = TABS.find((t) => t.key === effectiveTab);
+  const rows = computeTableData(activeResults, effectiveTab, { showHealth });
 
   let heatmapKey = currentTab.heatmapKey;
-  if (showHealth && (activeTab === "summary" || activeTab === "healthcare")) {
+  if (showHealth && activeTab === "summary") {
     heatmapKey = "Net Income (with Healthcare)";
   }
   const heatmapGrid = heatmapData?.grids?.[heatmapKey] || null;
@@ -247,10 +248,10 @@ export default function ResultsDisplay({
         onToggleHealth={setShowHealth}
       />
       <div className="tab-bar">
-        {TABS.map((tab) => (
+        {TABS.filter((tab) => tab.key !== "healthcare" || showHealth).map((tab) => (
           <button
             key={tab.key}
-            className={`tab-btn ${activeTab === tab.key ? "active" : ""}`}
+            className={`tab-btn ${effectiveTab === tab.key ? "active" : ""}`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
