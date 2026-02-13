@@ -485,7 +485,7 @@ body {
 
 .split-table {
   padding: 0.75rem;
-  overflow: auto;
+  overflow: visible;
   border-right: 1px solid #E2E8F0;
   min-width: 0;
 }
@@ -498,30 +498,47 @@ body {
 
 /* ---- Table ---- */
 .table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.78rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.7rem;
 }
 
 .data-table th {
-  text-align: left;
-  padding: 0.35rem 0.45rem;
-  background: #F2F4F7;
-  border-bottom: 2px solid #D1D5DB;
-  font-weight: 600;
-  color: #344054;
+  text-align: right;
+  padding: 0.35rem 0.5rem;
+  background: #F8FAFC;
+  border-bottom: 2px solid #CBD5E1;
+  font-weight: 700;
+  color: #1E293B;
   white-space: nowrap;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.data-table th:first-child {
+  text-align: left;
 }
 
 .data-table td {
-  padding: 0.3rem 0.45rem;
-  border-bottom: 1px solid #E2E8F0;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #F1F5F9;
   white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table .row-label {
+  text-align: left;
+  font-weight: 500;
+  color: #334155;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .program-name-tip {
@@ -543,7 +560,7 @@ body {
   font-weight: 400;
   line-height: 1.4;
   border-radius: 6px;
-  z-index: 20;
+  z-index: 100;
   pointer-events: none;
   white-space: normal;
 }
@@ -558,30 +575,26 @@ body {
 }
 
 .program-name-tip:hover .tooltip { display: block; }
-.data-table tbody tr:nth-child(even) { background: #FAFBFC; }
+.data-table tbody tr:nth-child(even) { background: #F8FAFC; }
 .data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover { background: #F0F9FF; }
-.data-table .positive { color: #16A34A; font-weight: 600; }
-.data-table .negative { color: #DC2626; font-weight: 600; }
-
-/* Transposed table: programs as columns */
-.data-table--transposed th {
-  font-size: 0.72rem;
-  max-width: 120px;
-  white-space: normal;
-  line-height: 1.3;
-  vertical-align: bottom;
+.data-table tbody tr { transition: background 0.1s; }
+.data-table tbody tr:hover { background: #EFF6FF; }
+.data-table .positive {
+  color: #15803D;
+  font-weight: 700;
+  background: rgba(22, 163, 74, 0.06);
+}
+.data-table .negative {
+  color: #B91C1C;
+  font-weight: 700;
+  background: rgba(220, 38, 38, 0.06);
 }
 
-.data-table--transposed .row-label {
+/* First row highlight (Net Income in summary) */
+.data-table tbody tr:first-child td {
   font-weight: 600;
-  color: #344054;
-  white-space: nowrap;
-  font-size: 0.75rem;
-}
-
-.data-table--transposed .delta-row {
-  border-top: 2px solid #E2E8F0;
+  color: #0F172A;
+  border-bottom: 2px solid #E2E8F0;
 }
 
 .data-table--transposed td {
@@ -914,13 +927,13 @@ body {
 .valentine .tab-btn:hover { color: #EC4899; }
 .valentine .tab-btn.active { color: #BE185D; border-bottom-color: #DB2777; }
 .valentine .tab-bar { border-bottom-color: #FECDD3; }
-.valentine .data-table th { background: #FCE7F3; border-bottom-color: #F9A8D4; color: #9D174D; }
+.valentine .data-table th { background: #FDF2F8; border-bottom-color: #F9A8D4; color: #9D174D; }
 .valentine .data-table td { border-bottom-color: #FECDD3; }
 .valentine .data-table tr:hover { background: #FFF1F2; }
 .valentine .data-table tbody tr:nth-child(even) { background: #FFF7F8; }
-.valentine .data-table--transposed .delta-row { border-top-color: #FECDD3; }
-.valentine .data-table .positive { color: #DB2777; font-weight: 600; }
-.valentine .data-table .negative { color: #881337; font-weight: 600; }
+.valentine .data-table tbody tr:first-child td { border-bottom-color: #F9A8D4; }
+.valentine .data-table .positive { color: #DB2777; font-weight: 700; background: rgba(219, 39, 119, 0.06); }
+.valentine .data-table .negative { color: #881337; font-weight: 700; background: rgba(136, 19, 55, 0.06); }
 .valentine .program-name-tip { border-bottom-color: #F9A8D4; }
 .valentine .program-name-tip .tooltip { background: #9D174D; }
 .valentine .program-name-tip .tooltip::after { border-top-color: #9D174D; }

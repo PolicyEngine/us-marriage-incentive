@@ -85,11 +85,12 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
             xgap: 1,
             ygap: 1,
             colorbar: {
-              title: { text: "Net Change", side: "right" },
+              title: { text: "Net Change", side: "right", font: { size: 12 } },
               tickprefix: "$",
               thickness: 15,
               len: 0.9,
               outlinewidth: 0,
+              xpad: 15,
             },
             hovertemplate:
               "You: %{x}<br>Partner: %{y}<br>Change: %{z:$,.0f}<extra></extra>",

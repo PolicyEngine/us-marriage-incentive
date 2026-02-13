@@ -236,40 +236,47 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
 
   if (tab === "summary") {
     const netKey = showHealth ? "householdNetIncomeWithHealth" : "householdNetIncome";
-    const categories = showHealth
-      ? ["Net Income (incl. Healthcare)", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"]
-      : ["Net Income", "Healthcare Benefits", "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits"];
+    const netLabel = showHealth ? "Net Income (incl. Healthcare)" : "Net Income";
+    const categories = [
+      netLabel,
+      ...(showHealth ? ["Healthcare Benefits"] : []),
+      "Benefits", "Refundable Tax Credits", "Taxes Before Refundable Credits",
+    ];
 
     const mVals = [
       married.aggregates[netKey],
-      ...(showHealth ? [] : [married.aggregates.healthcareBenefitValue]),
+      ...(showHealth ? [married.aggregates.healthcareBenefitValue] : []),
       married.aggregates.householdBenefits,
       married.aggregates.householdRefundableCredits,
       married.aggregates.householdTaxBeforeCredits,
     ];
     const sVals = [
       headSingle.aggregates[netKey] + spouseSingle.aggregates[netKey],
-      ...(showHealth ? [] : [headSingle.aggregates.healthcareBenefitValue + spouseSingle.aggregates.healthcareBenefitValue]),
+      ...(showHealth ? [headSingle.aggregates.healthcareBenefitValue + spouseSingle.aggregates.healthcareBenefitValue] : []),
       headSingle.aggregates.householdBenefits + spouseSingle.aggregates.householdBenefits,
       headSingle.aggregates.householdRefundableCredits + spouseSingle.aggregates.householdRefundableCredits,
       headSingle.aggregates.householdTaxBeforeCredits + spouseSingle.aggregates.householdTaxBeforeCredits,
     ];
     const hVals = [
       headSingle.aggregates[netKey],
-      ...(showHealth ? [] : [headSingle.aggregates.healthcareBenefitValue]),
+      ...(showHealth ? [headSingle.aggregates.healthcareBenefitValue] : []),
       headSingle.aggregates.householdBenefits,
       headSingle.aggregates.householdRefundableCredits,
       headSingle.aggregates.householdTaxBeforeCredits,
     ];
     const spVals = [
       spouseSingle.aggregates[netKey],
-      ...(showHealth ? [] : [spouseSingle.aggregates.healthcareBenefitValue]),
+      ...(showHealth ? [spouseSingle.aggregates.healthcareBenefitValue] : []),
       spouseSingle.aggregates.householdBenefits,
       spouseSingle.aggregates.householdRefundableCredits,
       spouseSingle.aggregates.householdTaxBeforeCredits,
     ];
 
-    return buildRows(categories, mVals, sVals, hVals, spVals, false);
+    const rows = buildRows(categories, mVals, sVals, hVals, spVals, false);
+    // Invert coloring for the taxes row: reduction = green
+    const taxRow = rows.find((r) => r.program === "Taxes Before Refundable Credits");
+    if (taxRow) taxRow.rawDelta = -taxRow.rawDelta;
+    return rows;
   }
 
   if (tab === "benefits") {
@@ -324,27 +331,27 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
   }
 
   if (tab === "taxes") {
-    // Ensure federal and state income tax always appear, even if $0
+    // Merge federal taxes, person taxes, and state taxes into one view
     const alwaysShow = ["income_tax_before_refundable_credits", "state_income_tax_before_refundable_credits"];
-    const ensure = (dict) => {
-      const d = { ...dict };
+    const merge = (taxes, stateTaxes) => {
+      const d = { ...taxes, ...(stateTaxes || {}) };
       for (const key of alwaysShow) if (!(key in d)) d[key] = 0;
       return d;
     };
-    const rows = buildBreakdownRows(
-      ensure(married.taxes),
-      ensure(headSingle.taxes),
-      ensure(spouseSingle.taxes),
-      alwaysShow,
-    );
+    const mMerged = merge(married.taxes, married.stateTaxes);
+    const hMerged = merge(headSingle.taxes, headSingle.stateTaxes);
+    const sMerged = merge(spouseSingle.taxes, spouseSingle.stateTaxes);
+    const rows = buildBreakdownRows(mMerged, hMerged, sMerged, alwaysShow);
     addOtherRow(rows, "Other Taxes",
       married.aggregates.householdTaxBeforeCredits,
       headSingle.aggregates.householdTaxBeforeCredits,
       spouseSingle.aggregates.householdTaxBeforeCredits,
-      sumDict(married.taxes),
-      sumDict(headSingle.taxes),
-      sumDict(spouseSingle.taxes),
+      sumDict(mMerged),
+      sumDict(hMerged),
+      sumDict(sMerged),
     );
+    // Invert coloring: tax reduction = green, tax increase = red
+    for (const row of rows) row.rawDelta = -row.rawDelta;
     return rows;
   }
 
@@ -355,9 +362,9 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
       return o;
     };
     return buildBreakdownRows(
-      { ...strip(married.stateCredits || {}), ...(married.stateTaxes || {}) },
-      { ...strip(headSingle.stateCredits || {}), ...(headSingle.stateTaxes || {}) },
-      { ...strip(spouseSingle.stateCredits || {}), ...(spouseSingle.stateTaxes || {}) },
+      strip(married.stateCredits || {}),
+      strip(headSingle.stateCredits || {}),
+      strip(spouseSingle.stateCredits || {}),
     );
   }
 

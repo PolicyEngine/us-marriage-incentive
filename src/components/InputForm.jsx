@@ -186,7 +186,7 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
                 checked={child.isDisabled}
                 onChange={(e) => updateChild(i, "isDisabled", e.target.checked)}
               />
-              Dis.
+              Disabled
             </label>
             <button
               type="button"

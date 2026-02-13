@@ -10,7 +10,7 @@ const TABS = [
   { key: "benefits", label: "Benefits", heatmapKey: "Benefits" },
   { key: "healthcare", label: "Healthcare", heatmapKey: "Healthcare Benefits" },
   { key: "credits", label: "Federal Credits", heatmapKey: "Refundable Tax Credits" },
-  { key: "state", label: "State", heatmapKey: "Net Income" },
+  { key: "state", label: "State Credits", heatmapKey: "Net Income" },
 ];
 
 function DataTable({ rows }) {
@@ -96,7 +96,7 @@ function HeadlineBanner({ results, showHealth, onToggleHealth }) {
     ? "Marriage bonus"
     : isPenalty
       ? "Marriage penalty"
-      : "No marriage incentive effect";
+      : "No marriage incentive or penalty";
 
   function handleShare() {
     navigator.clipboard.writeText(window.location.href).then(() => {
