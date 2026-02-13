@@ -17,7 +17,7 @@ const VALENTINE_SCALE = [
   [1, "#BE185D"],
 ];
 
-export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false }) {
+export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false, onCellClick, selectedCell }) {
   if (!grid || grid.length === 0) {
     return <p className="loading">No heatmap data available.</p>;
   }
@@ -44,17 +44,34 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
 
   const accentColor = valentine ? "#BE185D" : "#285E61";
 
-  // "You are here" marker — snap to nearest grid cell
-  const xi = Math.min(count - 1, Math.max(0, Math.round(headIncome / step)));
-  const yi = Math.min(count - 1, Math.max(0, Math.round(spouseIncome / step)));
+  // Marker position — moves to selected cell, defaults to "You are here"
+  const defaultXi = Math.min(count - 1, Math.max(0, Math.round(headIncome / step)));
+  const defaultYi = Math.min(count - 1, Math.max(0, Math.round(spouseIncome / step)));
+  const xi = selectedCell ? selectedCell.headIdx : defaultXi;
+  const yi = selectedCell ? selectedCell.spouseIdx : defaultYi;
   const markerX = tickLabels[xi];
   const markerY = tickLabels[yi];
-  // Use exact calculated delta when available (grid snapping can be inaccurate)
-  const markerVal = markerDelta !== null ? markerDelta : (grid[yi]?.[xi] ?? 0);
+  const markerVal = selectedCell
+    ? (grid[yi]?.[xi] ?? 0)
+    : markerDelta !== null ? markerDelta : (grid[yi]?.[xi] ?? 0);
+
+  // Cell value at marker position — dark background when far from zero
+  const cellVal = grid[yi]?.[xi] ?? 0;
+  const onDark = absMax > 0 && Math.abs(cellVal) / absMax > 0.45;
+
+  function handleClick(data) {
+    if (!onCellClick || !data.points || data.points.length === 0) return;
+    const point = data.points[0];
+    if (point.curveNumber !== 0) return; // only heatmap trace
+    // After transposition: row=spouse, col=head
+    const spouseIdx = point.pointIndex[0];
+    const headIdx = point.pointIndex[1];
+    onCellClick(headIdx, spouseIdx);
+  }
 
   return (
     <div className="heatmap-section">
-      <h3>Situation with varying head and spouse income:</h3>
+      <h3>Click any cell to see its breakdown:</h3>
       <Plot
         data={[
           {
@@ -75,8 +92,9 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
               outlinewidth: 0,
             },
             hovertemplate:
-              "Head: %{x}<br>Spouse: %{y}<br>Change: %{z:$,.0f}<extra></extra>",
+              "You: %{x}<br>Partner: %{y}<br>Change: %{z:$,.0f}<extra></extra>",
           },
+          // Marker — adapt colors to cell brightness
           {
             x: [markerX],
             y: [markerY],
@@ -85,12 +103,12 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
             marker: {
               size: 16,
               color: "rgba(0,0,0,0)",
-              line: { width: 2.5, color: accentColor },
+              line: { width: 2.5, color: onDark ? "white" : accentColor },
               symbol: valentine ? "heart" : "diamond",
             },
             text: [valentine ? "You \u2764" : "You"],
             textposition: "top center",
-            textfont: { size: 11, color: accentColor, family: "-apple-system, BlinkMacSystemFont, sans-serif" },
+            textfont: { size: 11, color: onDark ? "white" : "#1E293B", family: "-apple-system, BlinkMacSystemFont, sans-serif" },
             name: "Your situation",
             hovertemplate: `Your situation<br>Change: $${Math.round(markerVal).toLocaleString()}<extra></extra>`,
             showlegend: false,
@@ -98,25 +116,26 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
         ]}
         layout={{
           xaxis: {
-            title: { text: "Head Employment Income", standoff: 10 },
+            title: { text: "Your Income", standoff: 10 },
             side: "bottom",
             tickangle: 0,
             tickvals: visibleTicks,
             ticktext: visibleTicks,
           },
           yaxis: {
-            title: { text: "Spouse Employment Income", standoff: 10 },
+            title: { text: "Partner's Income", standoff: 10 },
             tickvals: visibleTicks,
             ticktext: visibleTicks,
           },
-          height: fullscreen ? window.innerHeight - 80 : 600,
-          margin: { l: 80, r: 80, t: 10, b: 60 },
+          height: fullscreen ? window.innerHeight - 80 : 480,
+          margin: { l: 70, r: 40, t: 10, b: 55 },
           plot_bgcolor: "#FFFFFF",
           paper_bgcolor: "transparent",
           font: { family: "-apple-system, BlinkMacSystemFont, sans-serif" },
         }}
         config={{ responsive: true, displayModeBar: false }}
-        style={{ width: "100%" }}
+        style={{ width: "100%", cursor: onCellClick ? "crosshair" : "default" }}
+        onClick={handleClick}
       />
     </div>
   );

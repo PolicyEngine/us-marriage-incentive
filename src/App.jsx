@@ -75,6 +75,7 @@ export default function App() {
   const [formData, setFormData] = useState(null);
   const [valentine, setValentine] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [externalIncomes, setExternalIncomes] = useState(null);
   const initialValues = useRef(decodeFromHash());
   const didAutoCalc = useRef(false);
 
@@ -115,20 +116,11 @@ export default function App() {
 
   async function handleCalculate(data) {
     setFormData(data);
-
-    // Update URL
     window.history.replaceState(null, "", `#${encodeToHash(data)}`);
 
     const {
-      stateCode,
-      headIncome,
-      spouseIncome,
-      headAge,
-      spouseAge,
-      children,
-      disabilityStatus,
-      pregnancyStatus,
-      year,
+      stateCode, headIncome, spouseIncome, headAge, spouseAge,
+      children, disabilityStatus, pregnancyStatus, year,
     } = data;
 
     setLoading(true);
@@ -138,32 +130,17 @@ export default function App() {
 
     try {
       const result = await getCategorizedPrograms(
-        stateCode,
-        headIncome,
-        spouseIncome,
-        children,
-        disabilityStatus,
-        year,
-        pregnancyStatus,
-        headAge,
-        spouseAge,
+        stateCode, headIncome, spouseIncome, children,
+        disabilityStatus, year, pregnancyStatus, headAge, spouseAge,
       );
       setResults(result);
       setLoading(false);
 
-      // Load heatmap in the background
       setHeatmapLoading(true);
       try {
         const heatmap = await getHeatmapData(
-          stateCode,
-          children,
-          disabilityStatus,
-          year,
-          pregnancyStatus,
-          headIncome,
-          spouseIncome,
-          headAge,
-          spouseAge,
+          stateCode, children, disabilityStatus, year,
+          pregnancyStatus, headIncome, spouseIncome, headAge, spouseAge,
         );
         setHeatmapData(heatmap);
       } catch (e) {
@@ -175,6 +152,11 @@ export default function App() {
       setError(e.message);
       setLoading(false);
     }
+  }
+
+  function handleCellClick(headIncome, spouseIncome) {
+    // New object reference each time to trigger useEffect even if same values
+    setExternalIncomes({ headIncome, spouseIncome });
   }
 
   // Auto-calculate if URL has params on first load
@@ -201,48 +183,61 @@ export default function App() {
           ))}
         </div>
       )}
+
       <header className="app-header">
         <h1>{valentine ? "Love & Taxes Calculator" : "Marriage Incentive Calculator"}</h1>
         <p>
           {valentine
             ? "Will tying the knot cost you? Find out this Valentine's Day."
-            : "Evaluate marriage penalties and bonuses based on state and individual employment income."}
+            : "Evaluate marriage penalties and bonuses."}
         </p>
-        <p>
-          Powered by the{" "}
-          <a
-            href="https://github.com/policyengine/policyengine-us"
-            target="_blank"
-            rel="noreferrer"
-          >
-            policyengine-us
-          </a>{" "}
-          microsimulation model.
+        <p className="powered-by">
+          Powered by{" "}
+          <a href="https://github.com/policyengine/policyengine-us" target="_blank" rel="noreferrer">policyengine-us</a>.
         </p>
       </header>
 
-      <InputForm
-        onCalculate={handleCalculate}
-        loading={loading}
-        initialValues={initialValues.current}
-      />
+      <div className="app-layout">
+        <aside className="app-sidebar">
+          <InputForm
+            onCalculate={handleCalculate}
+            loading={loading}
+            initialValues={initialValues.current}
+            externalIncomes={externalIncomes}
+          />
+        </aside>
 
-      {error && <div className="error">{error}</div>}
+        <main className="app-main">
+          {error && <div className="error">{error}</div>}
 
-      {results && (
-        <ResultsDisplay
-          results={results}
-          heatmapData={heatmapData}
-          heatmapLoading={heatmapLoading}
-          headIncome={formData?.headIncome ?? 0}
-          spouseIncome={formData?.spouseIncome ?? 0}
-          valentine={valentine}
-        />
-      )}
+          {loading && (
+            <div className="main-placeholder">
+              <span className="spinner" /> Calculating...
+            </div>
+          )}
+
+          {!results && !loading && (
+            <div className="main-placeholder">
+              Enter your details and press Calculate to see results.
+            </div>
+          )}
+
+          {results && (
+            <ResultsDisplay
+              results={results}
+              heatmapData={heatmapData}
+              heatmapLoading={heatmapLoading}
+              headIncome={formData?.headIncome ?? 0}
+              spouseIncome={formData?.spouseIncome ?? 0}
+              valentine={valentine}
+              onCellClick={handleCellClick}
+            />
+          )}
+        </main>
+      </div>
 
       <p className="note">
-        We attribute all dependents to the head of household when considering
-        unmarried filers.
+        We attribute all dependents to the head of household when considering unmarried filers.
       </p>
     </div>
   );

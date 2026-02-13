@@ -39,6 +39,15 @@ const PERSON_TAXES = [
   "employee_medicare_tax",
 ];
 
+const HOUSEHOLD_VARS = [
+  "household_net_income",
+  "household_net_income_including_health_benefits",
+  "household_benefits",
+  "household_refundable_tax_credits",
+  "household_tax_before_refundable_credits",
+  "healthcare_benefit_value",
+];
+
 export function createSituation(
   stateCode,
   headIncome,
@@ -206,6 +215,43 @@ function extractPersonDict(result, vars, year) {
     dict[v] = sumPersonVar(result, v, year);
   }
   return dict;
+}
+
+function sumPersonArray(result, variable, year) {
+  const people = result?.people || {};
+  let total = null;
+  for (const person of Object.values(people)) {
+    const val = person?.[variable]?.[year];
+    if (Array.isArray(val)) {
+      if (!total) total = new Array(val.length).fill(0);
+      for (let i = 0; i < val.length; i++) total[i] += val[i] || 0;
+    } else if (typeof val === "number") {
+      if (!total) total = [val];
+      else total[0] += val;
+    }
+  }
+  return total || [];
+}
+
+function extractAllArrays(result, year) {
+  const data = {};
+  for (const v of HOUSEHOLD_VARS) {
+    data[v] = extractArray(result, "households", "your household", v, year);
+  }
+  for (const v of SPM_UNIT_BENEFITS) {
+    data[v] = extractArray(result, "spm_units", "your spm_unit", v, year);
+  }
+  for (const v of [
+    ...TAX_UNIT_CREDITS, ...TAX_UNIT_STATE_CREDITS,
+    ...TAX_UNIT_TAXES, ...TAX_UNIT_STATE_TAXES,
+    ...HEALTH_TAX_UNIT_VARS,
+  ]) {
+    data[v] = extractArray(result, "tax_units", "your tax unit", v, year);
+  }
+  for (const v of [...PERSON_BENEFITS, ...HEALTH_PERSON_VARS, ...PERSON_TAXES]) {
+    data[v] = sumPersonArray(result, v, year);
+  }
+  return data;
 }
 
 export async function getPrograms(
@@ -416,48 +462,16 @@ export async function getHeatmapData(
       hAge,
       sAge,
     );
-
-    const hh = situation.households["your household"];
-    hh.household_net_income = { [year]: null };
-    hh.household_net_income_including_health_benefits = { [year]: null };
-    hh.household_benefits = { [year]: null };
-    hh.household_refundable_tax_credits = { [year]: null };
-    hh.household_tax_before_refundable_credits = { [year]: null };
+    addOutputVariables(situation, year);
 
     if (includeSpouse) {
       situation.axes = [
-        [
-          {
-            name: "employment_income",
-            count,
-            index: 0,
-            min: 0,
-            max: maxIncome,
-            period: year,
-          },
-        ],
-        [
-          {
-            name: "employment_income",
-            count,
-            index: 1,
-            min: 0,
-            max: maxIncome,
-            period: year,
-          },
-        ],
+        [{ name: "employment_income", count, index: 0, min: 0, max: maxIncome, period: year }],
+        [{ name: "employment_income", count, index: 1, min: 0, max: maxIncome, period: year }],
       ];
     } else {
       situation.axes = [
-        [
-          {
-            name: "employment_income",
-            count,
-            min: 0,
-            max: maxIncome,
-            period: year,
-          },
-        ],
+        [{ name: "employment_income", count, min: 0, max: maxIncome, period: year }],
       ];
     }
 
@@ -465,23 +479,16 @@ export async function getHeatmapData(
   }
 
   const marriedSituation = buildHeatmapSituation(
-    true,
-    children,
-    disabilityStatus,
-    pregnancyStatus,
-    headAge,
-    spouseAge,
+    true, children, disabilityStatus, pregnancyStatus, headAge, spouseAge,
   );
   const headSingleSituation = buildHeatmapSituation(
-    false,
-    children,
-    disabilityStatus,
-    { head: pregnancyStatus.head || false },
-    headAge,
+    false, children, disabilityStatus,
+    { head: pregnancyStatus.head || false }, headAge,
   );
-  const spouseSingleSituation = buildHeatmapSituation(false, [], {
-    head: disabilityStatus.spouse || false,
-  }, { head: pregnancyStatus.spouse || false }, spouseAge);
+  const spouseSingleSituation = buildHeatmapSituation(
+    false, [], { head: disabilityStatus.spouse || false },
+    { head: pregnancyStatus.spouse || false }, spouseAge,
+  );
 
   const [marriedResult, headResult, spouseResult] = await Promise.all([
     callApi(marriedSituation),
@@ -489,14 +496,34 @@ export async function getHeatmapData(
     callApi(spouseSingleSituation),
   ]);
 
-  const variables = [
+  // Extract all per-program arrays for click-to-detail
+  const marriedData = extractAllArrays(marriedResult, year);
+  const headData = extractAllArrays(headResult, year);
+  const spouseData = extractAllArrays(spouseResult, year);
+
+  const ALL_VARS = [
+    ...HOUSEHOLD_VARS, ...SPM_UNIT_BENEFITS, ...PERSON_BENEFITS,
+    ...HEALTH_PERSON_VARS, ...HEALTH_TAX_UNIT_VARS,
+    ...TAX_UNIT_CREDITS, ...TAX_UNIT_STATE_CREDITS,
+    ...TAX_UNIT_TAXES, ...TAX_UNIT_STATE_TAXES, ...PERSON_TAXES,
+  ];
+  const programData = {};
+  for (const v of ALL_VARS) {
+    programData[v] = {
+      married: marriedData[v] || [],
+      head: headData[v] || [],
+      spouse: spouseData[v] || [],
+    };
+  }
+
+  // Build delta grids for the aggregate heatmap displays
+  const gridVars = [
     "household_net_income",
     "household_net_income_including_health_benefits",
     "household_benefits",
     "household_refundable_tax_credits",
     "household_tax_before_refundable_credits",
   ];
-
   const tabNames = [
     "Net Income",
     "Net Income (with Healthcare)",
@@ -507,29 +534,11 @@ export async function getHeatmapData(
 
   const grids = {};
 
-  for (let v = 0; v < variables.length; v++) {
-    const varName = variables[v];
-    const marriedFlat = extractArray(
-      marriedResult,
-      "households",
-      "your household",
-      varName,
-      year,
-    );
-    const headFlat = extractArray(
-      headResult,
-      "households",
-      "your household",
-      varName,
-      year,
-    );
-    const spouseFlat = extractArray(
-      spouseResult,
-      "households",
-      "your household",
-      varName,
-      year,
-    );
+  for (let v = 0; v < gridVars.length; v++) {
+    const varName = gridVars[v];
+    const marriedFlat = marriedData[varName];
+    const headFlat = headData[varName];
+    const spouseFlat = spouseData[varName];
 
     const marriedGrid = [];
     for (let i = 0; i < count; i++) {
@@ -554,5 +563,47 @@ export async function getHeatmapData(
     }
   }
 
-  return { grids, maxIncome, count };
+  return { grids, maxIncome, count, programData };
+}
+
+export function buildCellResults(programData, headIdx, spouseIdx, count) {
+  function getVal(varName, scenario) {
+    const arr = programData[varName]?.[scenario];
+    if (!arr || arr.length === 0) return 0;
+    if (scenario === "married") return arr[headIdx * count + spouseIdx] || 0;
+    if (scenario === "head") return arr[headIdx] || 0;
+    if (scenario === "spouse") return arr[spouseIdx] || 0;
+    return 0;
+  }
+
+  function buildDict(vars, scenario) {
+    const d = {};
+    for (const v of vars) d[v] = getVal(v, scenario);
+    return d;
+  }
+
+  function buildResult(scenario) {
+    return {
+      aggregates: {
+        householdNetIncome: getVal("household_net_income", scenario),
+        householdNetIncomeWithHealth: getVal("household_net_income_including_health_benefits", scenario),
+        householdBenefits: getVal("household_benefits", scenario),
+        healthcareBenefitValue: getVal("healthcare_benefit_value", scenario),
+        householdRefundableCredits: getVal("household_refundable_tax_credits", scenario),
+        householdTaxBeforeCredits: getVal("household_tax_before_refundable_credits", scenario),
+      },
+      benefits: { ...buildDict(SPM_UNIT_BENEFITS, scenario), ...buildDict(PERSON_BENEFITS, scenario) },
+      health: { ...buildDict(HEALTH_PERSON_VARS, scenario), ...buildDict(HEALTH_TAX_UNIT_VARS, scenario) },
+      credits: buildDict(TAX_UNIT_CREDITS, scenario),
+      stateCredits: buildDict(TAX_UNIT_STATE_CREDITS, scenario),
+      taxes: { ...buildDict(TAX_UNIT_TAXES, scenario), ...buildDict(PERSON_TAXES, scenario) },
+      stateTaxes: buildDict(TAX_UNIT_STATE_TAXES, scenario),
+    };
+  }
+
+  return {
+    married: buildResult("married"),
+    headSingle: buildResult("head"),
+    spouseSingle: buildResult("spouse"),
+  };
 }

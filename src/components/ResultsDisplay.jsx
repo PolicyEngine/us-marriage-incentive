@@ -1,18 +1,15 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import { computeTableData, formatCurrency, PROGRAM_DESCRIPTIONS } from "../utils";
+import { buildCellResults } from "../api";
 
 const Heatmap = lazy(() => import("./Heatmap"));
 
 const TABS = [
   { key: "summary", label: "Summary", heatmapKey: "Net Income" },
+  { key: "taxes", label: "Taxes", heatmapKey: "Tax Before Refundable Credits" },
   { key: "benefits", label: "Benefits", heatmapKey: "Benefits" },
   { key: "healthcare", label: "Healthcare", heatmapKey: "Net Income" },
-  { key: "credits", label: "Credits", heatmapKey: "Refundable Tax Credits" },
-  {
-    key: "taxes",
-    label: "Taxes",
-    heatmapKey: "Tax Before Refundable Credits",
-  },
+  { key: "credits", label: "Federal Credits", heatmapKey: "Refundable Tax Credits" },
   { key: "state", label: "State", heatmapKey: "Net Income" },
 ];
 
@@ -23,24 +20,32 @@ function DataTable({ rows }) {
 
   const showIndividual = rows.some((r) => r.headSingle !== null);
 
+  const scenarioCols = [
+    ...(showIndividual ? [
+      { label: "You (Single)", key: "headSingle" },
+      { label: "Partner (Single)", key: "spouseSingle" },
+    ] : []),
+    { label: "Not Married", key: "notMarried" },
+    { label: "Married", key: "married" },
+    { label: "Delta", key: "delta", colored: true },
+    { label: "Delta %", key: "deltaPct", colored: true },
+  ];
+
   return (
     <div className="table-scroll">
       <table className="data-table">
         <thead>
           <tr>
-            <th>Program</th>
-            {showIndividual && <th>Head (Single)</th>}
-            {showIndividual && <th>Spouse (Single)</th>}
-            <th>Not Married</th>
-            <th>Married</th>
-            <th>Delta</th>
-            <th>Delta %</th>
+            <th></th>
+            {scenarioCols.map((col) => (
+              <th key={col.label}>{col.label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
             <tr key={i}>
-              <td>
+              <td className="row-label">
                 {PROGRAM_DESCRIPTIONS[row.program] ? (
                   <span className="program-name-tip">
                     {row.program}
@@ -52,32 +57,22 @@ function DataTable({ rows }) {
                   row.program
                 )}
               </td>
-              {showIndividual && <td>{row.headSingle}</td>}
-              {showIndividual && <td>{row.spouseSingle}</td>}
-              <td>{row.notMarried}</td>
-              <td>{row.married}</td>
-              <td
-                className={
-                  row.rawDelta > 0
-                    ? "positive"
-                    : row.rawDelta < 0
-                      ? "negative"
+              {scenarioCols.map((col) => (
+                <td
+                  key={col.label}
+                  className={
+                    col.colored
+                      ? row.rawDelta > 0
+                        ? "positive"
+                        : row.rawDelta < 0
+                          ? "negative"
+                          : ""
                       : ""
-                }
-              >
-                {row.delta}
-              </td>
-              <td
-                className={
-                  row.rawDelta > 0
-                    ? "positive"
-                    : row.rawDelta < 0
-                      ? "negative"
-                      : ""
-                }
-              >
-                {row.deltaPct}
-              </td>
+                  }
+                >
+                  {row[col.key]}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -150,10 +145,12 @@ export default function ResultsDisplay({
   headIncome,
   spouseIncome,
   valentine,
+  onCellClick: onCellClickProp,
 }) {
   const [activeTab, setActiveTab] = useState("summary");
   const [showHealth, setShowHealth] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [cellSelection, setCellSelection] = useState(null);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -164,17 +161,28 @@ export default function ResultsDisplay({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [fullscreen]);
 
-  const currentTab = TABS.find((t) => t.key === activeTab);
-  const rows = computeTableData(results, activeTab);
+  // Build virtual results from clicked heatmap cell
+  const cellResults = useMemo(() => {
+    if (!cellSelection || !heatmapData?.programData) return null;
+    return buildCellResults(
+      heatmapData.programData,
+      cellSelection.headIdx,
+      cellSelection.spouseIdx,
+      heatmapData.count || 33,
+    );
+  }, [cellSelection, heatmapData]);
 
-  // When healthcare toggle is on, use health-inclusive heatmap for summary/healthcare tabs
+  const activeResults = cellResults || results;
+
+  const currentTab = TABS.find((t) => t.key === activeTab);
+  const rows = computeTableData(activeResults, activeTab);
+
   let heatmapKey = currentTab.heatmapKey;
   if (showHealth && (activeTab === "summary" || activeTab === "healthcare")) {
     heatmapKey = "Net Income (with Healthcare)";
   }
   const heatmapGrid = heatmapData?.grids?.[heatmapKey] || null;
 
-  // Compute exact delta for the "You" marker (grid snapping can be inaccurate)
   const HEATMAP_AGG = {
     "Net Income": "householdNetIncome",
     "Net Income (with Healthcare)": "householdNetIncomeWithHealth",
@@ -191,6 +199,14 @@ export default function ResultsDisplay({
     markerDelta = m - (h + s);
     if (heatmapKey === "Tax Before Refundable Credits") {
       markerDelta = -markerDelta;
+    }
+  }
+
+  function handleCellClick(headIdx, spouseIdx) {
+    setCellSelection({ headIdx, spouseIdx });
+    if (onCellClickProp && heatmapData) {
+      const step = heatmapData.maxIncome / (heatmapData.count - 1);
+      onCellClickProp(Math.round(headIdx * step), Math.round(spouseIdx * step));
     }
   }
 
@@ -217,6 +233,8 @@ export default function ResultsDisplay({
         count={heatmapData?.count || 33}
         markerDelta={markerDelta}
         fullscreen={fullscreen}
+        onCellClick={heatmapData?.programData ? handleCellClick : undefined}
+        selectedCell={cellSelection}
       />
     </Suspense>
   ) : null;
@@ -224,7 +242,7 @@ export default function ResultsDisplay({
   return (
     <div className="results">
       <HeadlineBanner
-        results={results}
+        results={activeResults}
         showHealth={showHealth}
         onToggleHealth={setShowHealth}
       />
@@ -240,20 +258,23 @@ export default function ResultsDisplay({
         ))}
       </div>
 
-      <div className="tab-content">
-        <h3 style={{ marginBottom: "1rem" }}>Current situation:</h3>
-        <DataTable rows={rows} />
+      <div className="tab-content-split">
+        <div className="split-table">
+          <DataTable rows={rows} />
+        </div>
 
         {heatmapContent && (
-          <div className="heatmap-wrapper">
-            <button
-              className="fullscreen-btn"
-              onClick={() => setFullscreen(true)}
-              title="View heatmap fullscreen"
-            >
-              Expand
-            </button>
-            {heatmapContent}
+          <div className="split-heatmap">
+            <div className="heatmap-wrapper">
+              <button
+                className="fullscreen-btn"
+                onClick={() => setFullscreen(true)}
+                title="View heatmap fullscreen"
+              >
+                Expand
+              </button>
+              {heatmapContent}
+            </div>
           </div>
         )}
       </div>
@@ -277,6 +298,8 @@ export default function ResultsDisplay({
                 count={heatmapData?.count || 33}
                 markerDelta={markerDelta}
                 fullscreen
+                onCellClick={heatmapData?.programData ? handleCellClick : undefined}
+                selectedCell={cellSelection}
               />
             </Suspense>
           </div>

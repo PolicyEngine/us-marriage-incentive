@@ -176,7 +176,8 @@ function buildRows(categories, marriedValues, separateValues, headValues, spouse
   return rows;
 }
 
-function buildBreakdownRows(marriedDict, headDict, spouseDict) {
+function buildBreakdownRows(marriedDict, headDict, spouseDict, alwaysShowKeys) {
+  const alwaysShow = new Set((alwaysShowKeys || []).map(formatProgramName));
   const allKeys = [
     ...new Set([
       ...Object.keys(marriedDict),
@@ -194,14 +195,17 @@ function buildBreakdownRows(marriedDict, headDict, spouseDict) {
     const mVal = marriedDict[key] || 0;
     const hVal = headDict[key] || 0;
     const sVal = spouseDict[key] || 0;
-    categories.push(formatProgramName(key));
+    const name = formatProgramName(key);
+    // Skip zeros unless this key is in alwaysShow
+    if (mVal === 0 && hVal === 0 && sVal === 0 && !alwaysShow.has(name)) continue;
+    categories.push(name);
     marriedValues.push(mVal);
     separateValues.push(hVal + sVal);
     headValues.push(hVal);
     spouseValues.push(sVal);
   }
 
-  return buildRows(categories, marriedValues, separateValues, headValues, spouseValues, true);
+  return buildRows(categories, marriedValues, separateValues, headValues, spouseValues, false);
 }
 
 function sumDict(dict) {
@@ -322,10 +326,18 @@ export function computeTableData(results, tab) {
   }
 
   if (tab === "taxes") {
+    // Ensure federal and state income tax always appear, even if $0
+    const alwaysShow = ["income_tax_before_refundable_credits", "state_income_tax_before_refundable_credits"];
+    const ensure = (dict) => {
+      const d = { ...dict };
+      for (const key of alwaysShow) if (!(key in d)) d[key] = 0;
+      return d;
+    };
     const rows = buildBreakdownRows(
-      married.taxes,
-      headSingle.taxes,
-      spouseSingle.taxes,
+      ensure(married.taxes),
+      ensure(headSingle.taxes),
+      ensure(spouseSingle.taxes),
+      alwaysShow,
     );
     addOtherRow(rows, "Other Taxes",
       married.aggregates.householdTaxBeforeCredits,
