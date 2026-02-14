@@ -32,6 +32,7 @@ export const US_STATES = [
   { code: "NJ", name: "New Jersey" },
   { code: "NM", name: "New Mexico" },
   { code: "NY", name: "New York" },
+  { code: "NYC", name: "New York City" },
   { code: "NC", name: "North Carolina" },
   { code: "ND", name: "North Dakota" },
   { code: "OH", name: "Ohio" },
@@ -312,35 +313,16 @@ export function computeTableData(results, tab, { showHealth = false } = {}) {
   }
 
   if (tab === "benefits") {
-    const rows = buildBreakdownRows(
-      married.benefits,
-      headSingle.benefits,
-      spouseSingle.benefits,
-    );
+    const mergedM = { ...married.benefits, ...married.health };
+    const mergedH = { ...headSingle.benefits, ...headSingle.health };
+    const mergedS = { ...spouseSingle.benefits, ...spouseSingle.health };
+    const rows = buildBreakdownRows(mergedM, mergedH, mergedS);
+    const aggM = married.aggregates.householdBenefits + married.aggregates.healthcareBenefitValue;
+    const aggH = headSingle.aggregates.householdBenefits + headSingle.aggregates.healthcareBenefitValue;
+    const aggS = spouseSingle.aggregates.householdBenefits + spouseSingle.aggregates.healthcareBenefitValue;
     addOtherRow(rows, "Other Benefits",
-      married.aggregates.householdBenefits,
-      headSingle.aggregates.householdBenefits,
-      spouseSingle.aggregates.householdBenefits,
-      sumDict(married.benefits),
-      sumDict(headSingle.benefits),
-      sumDict(spouseSingle.benefits),
-    );
-    return rows;
-  }
-
-  if (tab === "healthcare") {
-    const rows = buildBreakdownRows(
-      married.health,
-      headSingle.health,
-      spouseSingle.health,
-    );
-    addOtherRow(rows, "Other Healthcare",
-      married.aggregates.healthcareBenefitValue,
-      headSingle.aggregates.healthcareBenefitValue,
-      spouseSingle.aggregates.healthcareBenefitValue,
-      sumDict(married.health),
-      sumDict(headSingle.health),
-      sumDict(spouseSingle.health),
+      aggM, aggH, aggS,
+      sumDict(mergedM), sumDict(mergedH), sumDict(mergedS),
     );
     return rows;
   }

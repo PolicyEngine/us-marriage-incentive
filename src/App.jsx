@@ -26,7 +26,6 @@ function encodeToHash(formData) {
   }
   if (formData.esiStatus?.head) p.set("he", "1");
   if (formData.esiStatus?.spouse) p.set("se", "1");
-  if (formData.inNYC) p.set("nyc", "1");
   if (formData.year && formData.year !== DEFAULT_YEAR) {
     p.set("year", formData.year);
   }
@@ -49,7 +48,7 @@ function decodeFromHash() {
           })
       : [];
     return {
-      stateCode: p.get("state"),
+      stateCode: p.get("state") === "NY" && p.get("nyc") === "1" ? "NYC" : p.get("state"),
       headIncome: Number(p.get("head")),
       spouseIncome: Number(p.get("spouse") || 0),
       headAge: Number(p.get("ha") || 40),
@@ -66,7 +65,6 @@ function decodeFromHash() {
         head: p.get("he") === "1",
         spouse: p.get("se") === "1",
       },
-      inNYC: p.get("nyc") === "1",
       children,
       year: p.get("year") || DEFAULT_YEAR,
     };
@@ -129,9 +127,11 @@ export default function App() {
     window.history.replaceState(null, "", `#${encodeToHash(data)}`);
 
     const {
-      stateCode, headIncome, spouseIncome, headAge, spouseAge,
-      children, disabilityStatus, pregnancyStatus, esiStatus, inNYC, year,
+      headIncome, spouseIncome, headAge, spouseAge,
+      children, disabilityStatus, pregnancyStatus, esiStatus, year,
     } = data;
+    const stateCode = data.stateCode === "NYC" ? "NY" : data.stateCode;
+    const inNYC = data.stateCode === "NYC";
 
     setLoading(true);
     setError(null);

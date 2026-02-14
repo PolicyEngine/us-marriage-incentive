@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { US_STATES } from "../utils";
 import { AVAILABLE_YEARS, DEFAULT_YEAR } from "../api";
 
@@ -37,12 +37,43 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
   const [spousePregnant, setSpousePregnant] = useState(iv.pregnancyStatus?.spouse || false);
   const [headESI, setHeadESI] = useState(iv.esiStatus?.head || false);
   const [spouseESI, setSpouseESI] = useState(iv.esiStatus?.spouse || false);
-  const [inNYC, setInNYC] = useState(iv.inNYC || false);
   const [children, setChildren] = useState(
     (iv.children || []).map((c) => ({ ...c, age: String(c.age) })),
   );
   const [year, setYear] = useState(iv.year || DEFAULT_YEAR);
   const [errors, setErrors] = useState({});
+
+  // Auto-recalculate on form changes (debounced)
+  const autoCalcReady = useRef(false);
+  const debounceRef = useRef(null);
+  const childrenKey = children.map((c) => `${c.age}:${c.isDisabled}`).join(",");
+
+  function buildFormData() {
+    return {
+      stateCode,
+      headIncome: parseNumber(headIncome),
+      spouseIncome: parseNumber(spouseIncome),
+      headAge: Number(headAge) || 40,
+      spouseAge: Number(spouseAge) || 40,
+      children: children.map((c) => ({ ...c, age: Number(c.age) || 0 })),
+      disabilityStatus: { head: headDisabled, spouse: spouseDisabled },
+      pregnancyStatus: { head: headPregnant, spouse: spousePregnant },
+      esiStatus: { head: headESI, spouse: spouseESI },
+      year,
+    };
+  }
+
+  useEffect(() => {
+    if (!autoCalcReady.current) {
+      autoCalcReady.current = true;
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onCalculate(buildFormData()), 800);
+    return () => clearTimeout(debounceRef.current);
+  }, [stateCode, headIncome, spouseIncome, headAge, spouseAge,
+    headDisabled, spouseDisabled, headPregnant, spousePregnant,
+    headESI, spouseESI, year, childrenKey]);
 
   // Sync income fields when heatmap cell is clicked
   useEffect(() => {
@@ -94,19 +125,7 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
 
   function handleSubmit(e) {
     e.preventDefault();
-    onCalculate({
-      stateCode,
-      headIncome: parseNumber(headIncome),
-      spouseIncome: parseNumber(spouseIncome),
-      headAge: Number(headAge) || 40,
-      spouseAge: Number(spouseAge) || 40,
-      children: children.map((c) => ({ ...c, age: Number(c.age) || 0 })),
-      disabilityStatus: { head: headDisabled, spouse: spouseDisabled },
-      pregnancyStatus: { head: headPregnant, spouse: spousePregnant },
-      esiStatus: { head: headESI, spouse: spouseESI },
-      inNYC: stateCode === "NY" ? inNYC : false,
-      year,
-    });
+    onCalculate(buildFormData());
   }
 
   return (
@@ -129,18 +148,6 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
           </select>
         </div>
       </div>
-
-      {stateCode === "NY" && (
-        <label className="sf-toggle sf-nyc-toggle">
-          <input
-            type="checkbox"
-            checked={inNYC}
-            onChange={(e) => setInNYC(e.target.checked)}
-          />
-          <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
-          New York City
-        </label>
-      )}
 
       <PersonSection
         title="You"
