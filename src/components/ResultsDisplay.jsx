@@ -13,9 +13,9 @@ const TABS = [
   { key: "state", label: "State Credits", heatmapKey: "State Credits" },
 ];
 
-function DataTable({ rows }) {
+function DataTable({ rows, emptyMessage }) {
   if (rows.length === 0) {
-    return <p className="loading">No data to display.</p>;
+    return <p className="loading">{emptyMessage || "No data to display."}</p>;
   }
 
   const showIndividual = rows.some((r) => r.headSingle !== null);
@@ -99,10 +99,28 @@ function HeadlineBanner({ results, showHealth }) {
       : "No marriage incentive or penalty";
 
   function handleShare() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    const url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -113,7 +131,7 @@ function HeadlineBanner({ results, showHealth }) {
         <span className="headline-label">{label}</span>
         {delta !== 0 && (
           <span className="headline-amount">
-            {formatCurrency(Math.abs(delta))}/yr
+            {formatCurrency(delta, true)}/yr
           </span>
         )}
       </div>
@@ -138,11 +156,17 @@ export default function ResultsDisplay({
   spouseIncome,
   valentine,
   onCellClick: onCellClickProp,
+  esiStatus,
 }) {
+  const neitherHasESI = !esiStatus?.head && !esiStatus?.spouse;
   const [activeTab, setActiveTab] = useState("summary");
-  const [showHealth, setShowHealth] = useState(false);
+  const [showHealth, setShowHealth] = useState(neitherHasESI);
   const [fullscreen, setFullscreen] = useState(false);
   const [cellSelection, setCellSelection] = useState(null);
+
+  useEffect(() => {
+    setShowHealth(neitherHasESI);
+  }, [neitherHasESI]);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -170,6 +194,15 @@ export default function ResultsDisplay({
   const effectiveTab = (!showHealth && activeTab === "healthcare") ? "summary" : activeTab;
   const currentTab = TABS.find((t) => t.key === effectiveTab);
   const rows = computeTableData(activeResults, effectiveTab, { showHealth });
+
+  const EMPTY_MESSAGES = {
+    summary: "No data available for this scenario.",
+    taxes: "No tax liability at these income levels.",
+    benefits: "Not eligible for benefit programs at these income levels.",
+    healthcare: "Not eligible for healthcare subsidies at these income levels.",
+    credits: "No federal refundable credits at these income levels.",
+    state: "No state credits available for this state or income level.",
+  };
 
   let heatmapKey = currentTab.heatmapKey;
   if (showHealth && activeTab === "summary") {
@@ -214,6 +247,8 @@ export default function ResultsDisplay({
     onCellClick: heatmapData?.programData ? handleCellClick : undefined,
     selectedCell: cellSelection,
     label: heatmapKey,
+    headLine: heatmapData?.headLines?.[heatmapKey],
+    spouseLine: heatmapData?.spouseLines?.[heatmapKey],
   } : null;
 
   const heatmapContent = heatmapLoading ? (
@@ -254,7 +289,7 @@ export default function ResultsDisplay({
 
       <div className="tab-content-split">
         <div className="split-table">
-          <DataTable rows={rows} />
+          <DataTable rows={rows} emptyMessage={EMPTY_MESSAGES[effectiveTab]} />
           <label className="health-toggle" title="Include the estimated cash value of healthcare coverage (Medicaid, CHIP, ACA subsidies). These are not cash benefits but represent the value of coverage you would otherwise need to purchase.">
             <input
               type="checkbox"

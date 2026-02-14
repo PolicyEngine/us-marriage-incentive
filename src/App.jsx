@@ -23,6 +23,9 @@ function encodeToHash(formData) {
         .join(","),
     );
   }
+  if (formData.esiStatus?.head) p.set("he", "1");
+  if (formData.esiStatus?.spouse) p.set("se", "1");
+  if (formData.inNYC) p.set("nyc", "1");
   if (formData.year && formData.year !== DEFAULT_YEAR) {
     p.set("year", formData.year);
   }
@@ -58,6 +61,11 @@ function decodeFromHash() {
         head: p.get("hp") === "1",
         spouse: p.get("sp") === "1",
       },
+      esiStatus: {
+        head: p.get("he") === "1",
+        spouse: p.get("se") === "1",
+      },
+      inNYC: p.get("nyc") === "1",
       children,
       year: p.get("year") || DEFAULT_YEAR,
     };
@@ -120,7 +128,7 @@ export default function App() {
 
     const {
       stateCode, headIncome, spouseIncome, headAge, spouseAge,
-      children, disabilityStatus, pregnancyStatus, year,
+      children, disabilityStatus, pregnancyStatus, esiStatus, inNYC, year,
     } = data;
 
     setLoading(true);
@@ -132,6 +140,7 @@ export default function App() {
       const result = await getCategorizedPrograms(
         stateCode, headIncome, spouseIncome, children,
         disabilityStatus, year, pregnancyStatus, headAge, spouseAge,
+        esiStatus, inNYC,
       );
       setResults(result);
       setLoading(false);
@@ -141,6 +150,7 @@ export default function App() {
         const heatmap = await getHeatmapData(
           stateCode, children, disabilityStatus, year,
           pregnancyStatus, headIncome, spouseIncome, headAge, spouseAge,
+          esiStatus, inNYC,
         );
         setHeatmapData(heatmap);
       } catch (e) {
@@ -191,10 +201,6 @@ export default function App() {
             ? "Will tying the knot cost you? Find out this Valentine's Day."
             : "Evaluate marriage penalties and bonuses."}
         </p>
-        <p className="powered-by">
-          Powered by{" "}
-          <a href="https://github.com/policyengine/policyengine-us" target="_blank" rel="noreferrer">policyengine-us</a>.
-        </p>
       </header>
 
       <div className="app-layout">
@@ -231,6 +237,7 @@ export default function App() {
               spouseIncome={formData?.spouseIncome ?? 0}
               valentine={valentine}
               onCellClick={handleCellClick}
+              esiStatus={formData?.esiStatus}
             />
           )}
         </main>

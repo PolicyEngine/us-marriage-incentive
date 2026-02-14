@@ -185,9 +185,34 @@ body {
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: 0.15rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
+
+.sf-label-tip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted var(--color-tooltip-dotted);
+  display: inline-block;
+}
+
+.sf-label-tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 200px;
+  padding: 0.4rem 0.5rem;
+  background: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.4;
+  border-radius: 6px;
+  z-index: 100;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.sf-label-tip:hover .sf-label-tooltip { display: block; }
 
 .sf-field select,
 .sf-field input[type="number"],
@@ -232,8 +257,6 @@ body {
 .sf-person-title {
   font-size: 0.74rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .sf-person--you .sf-person-title { color: var(--accent-you-text); }
@@ -362,8 +385,6 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .btn-add-child {
@@ -646,9 +667,7 @@ body {
   font-weight: 700;
   color: var(--color-table-header-text);
   white-space: nowrap;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 0.7rem;
 }
 
 .data-table th:first-child {
@@ -1052,6 +1071,10 @@ body {
   --color-section-heading: #9D174D;
   --color-error-bg: #FFF1F2;
   --color-error-text: #9D174D;
+}
+
+.sf-nyc-toggle {
+  padding: 0.25rem 0;
 }
 
 .valentine .sf-child { border-color: #FECDD3; background: #FCE7F3; }

@@ -17,7 +17,7 @@ const VALENTINE_SCALE = [
   [1, "#BE185D"],
 ];
 
-export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false, onCellClick, selectedCell, label = "Net Change" }) {
+export default function Heatmap({ grid, headIncome, spouseIncome, valentine, maxIncome = 80000, count = 33, markerDelta = null, fullscreen = false, onCellClick, selectedCell, label = "Net Change", headLine, spouseLine }) {
   if (!grid || grid.length === 0) {
     return <p className="loading">No heatmap data available.</p>;
   }
@@ -59,6 +59,17 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
   const cellVal = grid[yi]?.[xi] ?? 0;
   const onDark = absMax > 0 && Math.abs(cellVal) / absMax > 0.45;
 
+  // Build customdata for hover: [notMarried, married] per cell
+  const hasBeforeAfter = headLine && spouseLine && headLine.length === count && spouseLine.length === count;
+  const customdata = hasBeforeAfter
+    ? grid.map((row, spouseIdx) =>
+        row.map((delta, headIdx) => {
+          const notMarried = (headLine[headIdx] || 0) + (spouseLine[spouseIdx] || 0);
+          return [notMarried, notMarried + delta];
+        }),
+      )
+    : null;
+
   function handleClick(data) {
     if (!onCellClick || !data.points || data.points.length === 0) return;
     const point = data.points[0];
@@ -84,6 +95,7 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
             zmax: zMax,
             xgap: 1,
             ygap: 1,
+            ...(customdata ? { customdata } : {}),
             colorbar: {
               title: { text: `Change in ${label}`, side: "right", font: { size: 12 } },
               tickprefix: "$",
@@ -92,8 +104,9 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
               outlinewidth: 0,
               xpad: 15,
             },
-            hovertemplate:
-              `Your Income: %{x}<br>Spouse Income: %{y}<br>Change in ${label}: %{z:$,.0f}<extra></extra>`,
+            hovertemplate: customdata
+              ? `Your income: %{x}<br>Partner's income: %{y}<br><br>Not married: %{customdata[0]:$,.0f}<br>Married: %{customdata[1]:$,.0f}<br><b>Change: %{z:$,.0f}</b><extra></extra>`
+              : `Your income: %{x}<br>Partner's income: %{y}<br>Change in ${label}: %{z:$,.0f}<extra></extra>`,
           },
           // Marker — adapt colors to cell brightness
           {
@@ -110,21 +123,28 @@ export default function Heatmap({ grid, headIncome, spouseIncome, valentine, max
             text: [valentine ? "You \u2764" : "You"],
             textposition: "top center",
             textfont: { size: 11, color: onDark ? "white" : "#1E293B", family: "-apple-system, BlinkMacSystemFont, sans-serif" },
-            name: "Your situation",
-            hovertemplate: `Your situation<br>Your Income: ${markerX}<br>Spouse Income: ${markerY}<br>Change in ${label}: $${Math.round(markerVal).toLocaleString()}<extra></extra>`,
+            name: "",
+            hovertemplate: (() => {
+              if (hasBeforeAfter) {
+                const notMarried = (headLine[xi] || 0) + (spouseLine[yi] || 0);
+                const married = notMarried + markerVal;
+                return `Your income: ${markerX}<br>Partner's income: ${markerY}<br><br>Not married: $${Math.round(notMarried).toLocaleString()}<br>Married: $${Math.round(married).toLocaleString()}<br><b>Change: $${Math.round(markerVal).toLocaleString()}</b><extra></extra>`;
+              }
+              return `Your income: ${markerX}<br>Partner's income: ${markerY}<br>Change: $${Math.round(markerVal).toLocaleString()}<extra></extra>`;
+            })(),
             showlegend: false,
           },
         ]}
         layout={{
           xaxis: {
-            title: { text: "Your Income", standoff: 10 },
+            title: { text: "Your income", standoff: 10 },
             side: "bottom",
             tickangle: 0,
             tickvals: visibleTicks,
             ticktext: visibleTicks,
           },
           yaxis: {
-            title: { text: "Partner's Income", standoff: 10 },
+            title: { text: "Partner's income", standoff: 10 },
             tickvals: visibleTicks,
             ticktext: visibleTicks,
           },

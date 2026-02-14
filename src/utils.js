@@ -52,14 +52,19 @@ export const US_STATES = [
   { code: "WY", name: "Wyoming" },
 ];
 
-export function formatCurrency(value) {
+export function formatCurrency(value, showPlus = false) {
   const rounded = Math.round(value);
   const formatted = Math.abs(rounded).toLocaleString();
-  return rounded < 0 ? `-$${formatted}` : `$${formatted}`;
+  if (rounded < 0) return `-$${formatted}`;
+  if (showPlus && rounded > 0) return `+$${formatted}`;
+  return `$${formatted}`;
 }
 
-export function formatPercent(value) {
-  return (value * 100).toFixed(1) + "%";
+export function formatPercent(value, showPlus = false) {
+  const pct = (value * 100).toFixed(1) + "%";
+  if (value < 0) return pct;
+  if (showPlus && value > 0) return "+" + pct;
+  return pct;
 }
 
 const ACRONYMS = {
@@ -195,8 +200,8 @@ function buildRows(categories, marriedValues, separateValues, headValues, spouse
       spouseSingle: spouseValues ? formatCurrency(spouseValues[i]) : null,
       notMarried: formatCurrency(s),
       married: formatCurrency(m),
-      delta: formatCurrency(delta),
-      deltaPct: formatPercent(deltaPct),
+      delta: formatCurrency(delta, true),
+      deltaPct: formatPercent(deltaPct, true),
       rawDelta: delta,
     });
   }

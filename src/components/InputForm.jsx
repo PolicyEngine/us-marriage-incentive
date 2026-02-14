@@ -35,6 +35,9 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
   const [spouseAge, setSpouseAge] = useState(iv.spouseAge ? String(iv.spouseAge) : "40");
   const [headPregnant, setHeadPregnant] = useState(iv.pregnancyStatus?.head || false);
   const [spousePregnant, setSpousePregnant] = useState(iv.pregnancyStatus?.spouse || false);
+  const [headESI, setHeadESI] = useState(iv.esiStatus?.head || false);
+  const [spouseESI, setSpouseESI] = useState(iv.esiStatus?.spouse || false);
+  const [inNYC, setInNYC] = useState(iv.inNYC || false);
   const [children, setChildren] = useState(
     (iv.children || []).map((c) => ({ ...c, age: String(c.age) })),
   );
@@ -100,6 +103,8 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
       children: children.map((c) => ({ ...c, age: Number(c.age) || 0 })),
       disabilityStatus: { head: headDisabled, spouse: spouseDisabled },
       pregnancyStatus: { head: headPregnant, spouse: spousePregnant },
+      esiStatus: { head: headESI, spouse: spouseESI },
+      inNYC: stateCode === "NY" ? inNYC : false,
       year,
     });
   }
@@ -125,6 +130,18 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
         </div>
       </div>
 
+      {stateCode === "NY" && (
+        <label className="sf-toggle sf-nyc-toggle">
+          <input
+            type="checkbox"
+            checked={inNYC}
+            onChange={(e) => setInNYC(e.target.checked)}
+          />
+          <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
+          New York City
+        </label>
+      )}
+
       <PersonSection
         title="You"
         accent="you"
@@ -140,6 +157,8 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
         onDisabledChange={setHeadDisabled}
         pregnant={headPregnant}
         onPregnantChange={setHeadPregnant}
+        hasESI={headESI}
+        onESIChange={setHeadESI}
       />
 
       <PersonSection
@@ -157,6 +176,8 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
         onDisabledChange={setSpouseDisabled}
         pregnant={spousePregnant}
         onPregnantChange={setSpousePregnant}
+        hasESI={spouseESI}
+        onESIChange={setSpouseESI}
       />
 
       <div className="sf-children">
@@ -212,13 +233,17 @@ function PersonSection({
   title, accent, income, onIncomeChange, onIncomeBlur, incomeError,
   age, onAgeChange, onAgeBlur, ageError,
   disabled, onDisabledChange, pregnant, onPregnantChange,
+  hasESI, onESIChange,
 }) {
   return (
     <div className={`sf-person sf-person--${accent}`}>
       <div className="sf-person-title">{title}</div>
       <div className="sf-row">
         <div className="sf-field sf-grow">
-          <label>Income</label>
+          <label className="sf-label-tip">
+            Income
+            <span className="sf-label-tooltip">Wages and salaries (not dividends, interest, etc.)</span>
+          </label>
           <div className="sf-income-wrap">
             <span className="sf-dollar">$</span>
             <input
@@ -256,6 +281,11 @@ function PersonSection({
           <input type="checkbox" checked={pregnant} onChange={(e) => onPregnantChange(e.target.checked)} />
           <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
           Pregnant
+        </label>
+        <label className="sf-toggle">
+          <input type="checkbox" checked={hasESI} onChange={(e) => onESIChange(e.target.checked)} />
+          <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
+          Has ESI
         </label>
       </div>
     </div>
