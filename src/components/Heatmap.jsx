@@ -27,6 +27,7 @@ export default function Heatmap({
   headLine,
   spouseLine,
   currencySymbol = "$",
+  invertDelta = false,
 }) {
   const gradId = useId().replace(/:/g, "");
   const svgRef = useRef(null);
@@ -118,6 +119,9 @@ export default function Heatmap({
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
     const val = grid[si][hi];
+    // Grid values may be negated for inverted variables (e.g. taxes).
+    // rawDelta is the actual married-minus-unmarried difference.
+    const rawDelta = invertDelta ? -val : val;
     const data = {
       px,
       py,
@@ -128,7 +132,7 @@ export default function Heatmap({
     };
     if (hasBeforeAfter) {
       data.notMarried = Math.round(headLine[hi] || 0) + Math.round(spouseLine[si] || 0);
-      data.married = data.notMarried + val;
+      data.married = data.notMarried + rawDelta;
     }
     setTooltip(data);
   }
@@ -448,7 +452,7 @@ export default function Heatmap({
               }}
             >
               {tooltip.delta >= 0 ? "Bonus" : "Penalty"}:{" "}
-              {fmtDollar(tooltip.delta, currencySymbol)}
+              {fmtDollar(Math.abs(tooltip.delta), currencySymbol)}
             </div>
           </div>
         )}

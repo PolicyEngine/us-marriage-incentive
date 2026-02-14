@@ -294,7 +294,7 @@ function PersonSection({
         <div className="sf-field sf-grow">
           <label className="sf-label-tip">
             Income
-            <span className="sf-label-tooltip">Wages and salaries (not dividends, interest, etc.)</span>
+            <span className="sf-label-tooltip">Wages and salaries only. Other inputs (unearned income, rent, childcare expenses, etc.) are assumed to be zero.</span>
           </label>
           <div className="sf-income-wrap">
             <span className="sf-dollar">{currencySymbol}</span>

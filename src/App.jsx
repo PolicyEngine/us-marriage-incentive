@@ -9,7 +9,8 @@ import { getCountry, COUNTRIES } from "./countries";
 function encodeToHash(countryId, formData) {
   const country = getCountry(countryId);
   const p = new URLSearchParams();
-  if (countryId !== "us") p.set("country", countryId);
+  const isEmbedded = window.self !== window.top;
+  if (countryId !== "us" && !isEmbedded) p.set("country", countryId);
   p.set("region", formData.regionCode || formData.stateCode);
   p.set("head", formData.headIncome);
   p.set("spouse", formData.spouseIncome);
@@ -87,6 +88,7 @@ export default function App() {
   const decoded = useRef(decodeFromHash());
   const [countryId, setCountryId] = useState(decoded.current?.countryId || "us");
   const country = getCountry(countryId);
+  const isEmbedded = window.self !== window.top;
 
   const [results, setResults] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
@@ -250,7 +252,7 @@ export default function App() {
           <div className="sidebar-collapsible">
             <InputForm
               country={country}
-              countries={COUNTRIES}
+              countries={isEmbedded ? null : COUNTRIES}
               countryId={countryId}
               onCountryChange={handleCountryChange}
               onCalculate={(data) => { setSidebarOpen(false); handleCalculate(data); }}

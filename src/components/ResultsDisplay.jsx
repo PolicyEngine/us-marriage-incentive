@@ -322,6 +322,11 @@ export default function ResultsDisplay({
   if (heatmapKey === "net income (with healthcare)") heatmapLabel = "net income";
   if (showHealth && activeTab === "benefits" && countryId === "us") heatmapLabel = "benefits";
 
+  // Check if the active heatmap key corresponds to an inverted variable (e.g. taxes)
+  const heatmapInvertDelta = country.gridConfig?.some(
+    (gc) => gc.tab === heatmapKey && gc.invertDelta,
+  ) || false;
+
   const heatmapProps = heatmapGrid ? {
     grid: heatmapGrid,
     headIncome,
@@ -336,6 +341,7 @@ export default function ResultsDisplay({
     headLine: combinedHeadLine,
     spouseLine: combinedSpouseLine,
     currencySymbol: sym,
+    invertDelta: heatmapInvertDelta,
   } : null;
 
   const heatmapContent = heatmapLoading ? (
