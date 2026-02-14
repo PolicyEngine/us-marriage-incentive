@@ -858,6 +858,17 @@ body {
 }
 
 /* ===========================================================
+   COLLAPSIBLE SIDEBAR (mobile only)
+   =========================================================== */
+.sidebar-toggle {
+  display: none; /* hidden on desktop */
+}
+
+.sidebar-collapsible {
+  display: contents; /* transparent wrapper on desktop */
+}
+
+/* ===========================================================
    RESPONSIVE
    =========================================================== */
 @media (max-width: 1024px) {
@@ -880,6 +891,48 @@ body {
     position: static;
   }
 
+  /* Collapsible sidebar */
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+    color: var(--color-text);
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .sidebar-toggle-summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-toggle-arrow {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+  }
+
+  .sidebar-collapsible {
+    display: block;
+  }
+
+  .app-sidebar.has-results .sidebar-collapsible {
+    display: none;
+  }
+
+  .app-sidebar.has-results.sidebar-open .sidebar-collapsible {
+    display: block;
+    margin-top: 0.5rem;
+  }
+
   .tab-content-split {
     grid-template-columns: 1fr;
   }
@@ -895,45 +948,6 @@ body {
     gap: 0.2rem;
   }
 
-  /* Make sidebar form horizontal on tablet */
-  .sidebar-form {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: flex-end;
-  }
-
-  .sidebar-form > .sf-row:first-child {
-    flex: 0 0 auto;
-  }
-
-  .sf-person {
-    flex: 1;
-    min-width: 180px;
-  }
-
-  .sf-children {
-    border-top: none;
-    padding-top: 0;
-  }
-
-  .btn-calc {
-    flex: 0 0 auto;
-    width: auto;
-    padding: 0.45rem 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-header h1 {
-    display: block;
-    font-size: 1.1rem;
-  }
-
-  .app-header p {
-    display: block;
-  }
-
   .sidebar-form {
     flex-direction: column;
   }
@@ -944,6 +958,68 @@ body {
 
   .btn-calc {
     width: 100%;
+  }
+
+  /* Table horizontal scroll */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 480px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: 0.5rem;
+  }
+
+  .app-header h1 {
+    display: block;
+    font-size: 1.1rem;
+  }
+
+  .app-header p {
+    display: block;
+    font-size: 0.75rem;
+  }
+
+  .headline-amount {
+    font-size: 0.95rem;
+  }
+
+  .headline-desc {
+    font-size: 0.65rem;
+  }
+
+  .tab-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .split-table {
+    padding: 0.5rem;
+  }
+
+  .split-heatmap {
+    padding: 0.25rem;
+  }
+
+  .data-table {
+    font-size: 0.65rem;
+    min-width: 360px;
+  }
+
+  .data-table th {
+    font-size: 0.6rem;
+    padding: 0.25rem 0.35rem;
+  }
+
+  .data-table td {
+    padding: 0.2rem 0.35rem;
   }
 }
 

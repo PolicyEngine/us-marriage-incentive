@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import InputForm from "./components/InputForm";
 import ResultsDisplay from "./components/ResultsDisplay";
 import { getCategorizedPrograms, getHeatmapData, DEFAULT_YEAR } from "./api";
+import { formatCurrency } from "./utils";
 
 // URL state helpers
 function encodeToHash(formData) {
@@ -84,6 +85,7 @@ export default function App() {
   const [valentine, setValentine] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [externalIncomes, setExternalIncomes] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const initialValues = useRef(decodeFromHash());
   const didAutoCalc = useRef(false);
 
@@ -204,13 +206,27 @@ export default function App() {
       </header>
 
       <div className="app-layout">
-        <aside className="app-sidebar">
-          <InputForm
-            onCalculate={handleCalculate}
-            loading={loading}
-            initialValues={initialValues.current}
-            externalIncomes={externalIncomes}
-          />
+        <aside className={`app-sidebar ${results ? "has-results" : ""} ${sidebarOpen ? "sidebar-open" : ""}`}>
+          {results && (
+            <button
+              type="button"
+              className="sidebar-toggle"
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              <span className="sidebar-toggle-summary">
+                {formData?.stateCode} &middot; {formatCurrency(formData?.headIncome ?? 0)} &amp; {formatCurrency(formData?.spouseIncome ?? 0)}
+              </span>
+              <span className="sidebar-toggle-arrow">{sidebarOpen ? "\u25B2" : "\u25BC"}</span>
+            </button>
+          )}
+          <div className="sidebar-collapsible">
+            <InputForm
+              onCalculate={(data) => { setSidebarOpen(false); handleCalculate(data); }}
+              loading={loading}
+              initialValues={initialValues.current}
+              externalIncomes={externalIncomes}
+            />
+          </div>
         </aside>
 
         <main className="app-main">
