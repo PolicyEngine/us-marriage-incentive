@@ -86,7 +86,9 @@ function decodeFromHash() {
 
 export default function App() {
   const decoded = useRef(decodeFromHash());
-  const [countryId, setCountryId] = useState(decoded.current?.countryId || "us");
+  // Read country from hash even if full form data isn't present (e.g. #country=uk from parent route)
+  const hashCountry = new URLSearchParams(window.location.hash.slice(1)).get("country");
+  const [countryId, setCountryId] = useState(decoded.current?.countryId || hashCountry || "us");
   const country = getCountry(countryId);
   const isEmbedded = window.self !== window.top;
 
