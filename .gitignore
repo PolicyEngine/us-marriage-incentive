@@ -12,6 +12,9 @@ __pycache__/
 env/
 venv/
 
+# Vite
+.vite/
+
 # IDE
 .idea/
 .vscode/

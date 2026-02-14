@@ -185,9 +185,34 @@ body {
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: 0.15rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
+
+.sf-label-tip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted var(--color-tooltip-dotted);
+  display: inline-block;
+}
+
+.sf-label-tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 200px;
+  padding: 0.4rem 0.5rem;
+  background: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.4;
+  border-radius: 6px;
+  z-index: 100;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.sf-label-tip:hover .sf-label-tooltip { display: block; }
 
 .sf-field select,
 .sf-field input[type="number"],
@@ -232,8 +257,6 @@ body {
 .sf-person-title {
   font-size: 0.74rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .sf-person--you .sf-person-title { color: var(--accent-you-text); }
@@ -362,8 +385,6 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .btn-add-child {
@@ -531,26 +552,20 @@ body {
 .headline-banner.bonus .headline-amount { color: var(--color-bonus); }
 .headline-banner.penalty .headline-amount { color: var(--color-penalty); }
 
+.headline-desc {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 0.1rem;
+}
+
 .headline-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.health-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  margin-top: 0.5rem;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.health-toggle input { cursor: pointer; }
 
 .share-btn {
   background: none;
@@ -646,9 +661,7 @@ body {
   font-weight: 700;
   color: var(--color-table-header-text);
   white-space: nowrap;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 0.7rem;
 }
 
 .data-table th:first-child {
@@ -845,6 +858,17 @@ body {
 }
 
 /* ===========================================================
+   COLLAPSIBLE SIDEBAR (mobile only)
+   =========================================================== */
+.sidebar-toggle {
+  display: none; /* hidden on desktop */
+}
+
+.sidebar-collapsible {
+  display: contents; /* transparent wrapper on desktop */
+}
+
+/* ===========================================================
    RESPONSIVE
    =========================================================== */
 @media (max-width: 1024px) {
@@ -867,6 +891,48 @@ body {
     position: static;
   }
 
+  /* Collapsible sidebar */
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+    color: var(--color-text);
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .sidebar-toggle-summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-toggle-arrow {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+  }
+
+  .sidebar-collapsible {
+    display: block;
+  }
+
+  .app-sidebar.has-results .sidebar-collapsible {
+    display: none;
+  }
+
+  .app-sidebar.has-results.sidebar-open .sidebar-collapsible {
+    display: block;
+    margin-top: 0.5rem;
+  }
+
   .tab-content-split {
     grid-template-columns: 1fr;
   }
@@ -882,45 +948,6 @@ body {
     gap: 0.2rem;
   }
 
-  /* Make sidebar form horizontal on tablet */
-  .sidebar-form {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: flex-end;
-  }
-
-  .sidebar-form > .sf-row:first-child {
-    flex: 0 0 auto;
-  }
-
-  .sf-person {
-    flex: 1;
-    min-width: 180px;
-  }
-
-  .sf-children {
-    border-top: none;
-    padding-top: 0;
-  }
-
-  .btn-calc {
-    flex: 0 0 auto;
-    width: auto;
-    padding: 0.45rem 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-header h1 {
-    display: block;
-    font-size: 1.1rem;
-  }
-
-  .app-header p {
-    display: block;
-  }
-
   .sidebar-form {
     flex-direction: column;
   }
@@ -931,6 +958,68 @@ body {
 
   .btn-calc {
     width: 100%;
+  }
+
+  /* Table horizontal scroll */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 480px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: 0.5rem;
+  }
+
+  .app-header h1 {
+    display: block;
+    font-size: 1.1rem;
+  }
+
+  .app-header p {
+    display: block;
+    font-size: 0.75rem;
+  }
+
+  .headline-amount {
+    font-size: 0.95rem;
+  }
+
+  .headline-desc {
+    font-size: 0.65rem;
+  }
+
+  .tab-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .split-table {
+    padding: 0.5rem;
+  }
+
+  .split-heatmap {
+    padding: 0.25rem;
+  }
+
+  .data-table {
+    font-size: 0.65rem;
+    min-width: 360px;
+  }
+
+  .data-table th {
+    font-size: 0.6rem;
+    padding: 0.25rem 0.35rem;
+  }
+
+  .data-table td {
+    padding: 0.2rem 0.35rem;
   }
 }
 
@@ -1052,6 +1141,10 @@ body {
   --color-section-heading: #9D174D;
   --color-error-bg: #FFF1F2;
   --color-error-text: #9D174D;
+}
+
+.sf-nyc-toggle {
+  padding: 0.25rem 0;
 }
 
 .valentine .sf-child { border-color: #FECDD3; background: #FCE7F3; }

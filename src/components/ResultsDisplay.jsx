@@ -8,14 +8,13 @@ const TABS = [
   { key: "summary", label: "Summary", heatmapKey: "Net Income" },
   { key: "taxes", label: "Taxes", heatmapKey: "Tax Before Refundable Credits" },
   { key: "benefits", label: "Benefits", heatmapKey: "Benefits" },
-  { key: "healthcare", label: "Healthcare", heatmapKey: "Healthcare Benefits" },
   { key: "credits", label: "Federal Credits", heatmapKey: "Federal Credits" },
   { key: "state", label: "State Credits", heatmapKey: "State Credits" },
 ];
 
-function DataTable({ rows }) {
+function DataTable({ rows, emptyMessage }) {
   if (rows.length === 0) {
-    return <p className="loading">No data to display.</p>;
+    return <p className="loading">{emptyMessage || "No data to display."}</p>;
   }
 
   const showIndividual = rows.some((r) => r.headSingle !== null);
@@ -81,14 +80,43 @@ function DataTable({ rows }) {
   );
 }
 
-function HeadlineBanner({ results, showHealth }) {
+const TAB_HEADLINE = {
+  summary: {
+    agg: (r, health) => r.aggregates[health ? "householdNetIncomeWithHealth" : "householdNetIncome"],
+    desc: (m, s) => `Net income: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
+    invertSign: false,
+  },
+  taxes: {
+    agg: (r) => r.aggregates.householdTaxBeforeCredits,
+    desc: (m, s) => `Total taxes: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
+    invertSign: true,
+  },
+  benefits: {
+    agg: (r, health) => r.aggregates.householdBenefits + (health ? r.aggregates.healthcareBenefitValue : 0),
+    desc: (m, s) => `Benefits: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
+    invertSign: false,
+  },
+  credits: {
+    agg: (r) => r.aggregates.householdRefundableCredits - r.aggregates.householdRefundableStateCredits,
+    desc: (m, s) => `Federal credits: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
+    invertSign: false,
+  },
+  state: {
+    agg: (r) => r.aggregates.householdRefundableStateCredits,
+    desc: (m, s) => `State credits: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
+    invertSign: false,
+  },
+};
+
+function HeadlineBanner({ results, showHealth, activeTab }) {
   const [copied, setCopied] = useState(false);
   const { married, headSingle, spouseSingle } = results;
 
-  const aggKey = showHealth ? "householdNetIncomeWithHealth" : "householdNetIncome";
-  const marriedNet = married.aggregates[aggKey];
-  const separateNet = headSingle.aggregates[aggKey] + spouseSingle.aggregates[aggKey];
-  const delta = marriedNet - separateNet;
+  const tabInfo = TAB_HEADLINE[activeTab] || TAB_HEADLINE.summary;
+  const marriedVal = tabInfo.agg(married, showHealth);
+  const separateVal = tabInfo.agg(headSingle, showHealth) + tabInfo.agg(spouseSingle, showHealth);
+  let delta = marriedVal - separateVal;
+  if (tabInfo.invertSign) delta = -delta;
 
   const isBonus = delta > 0;
   const isPenalty = delta < 0;
@@ -99,10 +127,28 @@ function HeadlineBanner({ results, showHealth }) {
       : "No marriage incentive or penalty";
 
   function handleShare() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    const url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -113,9 +159,10 @@ function HeadlineBanner({ results, showHealth }) {
         <span className="headline-label">{label}</span>
         {delta !== 0 && (
           <span className="headline-amount">
-            {formatCurrency(Math.abs(delta))}/yr
+            {formatCurrency(delta, true)}/yr
           </span>
         )}
+        <span className="headline-desc">{tabInfo.desc(marriedVal, separateVal)}</span>
       </div>
       <div className="headline-actions">
         <button
@@ -138,9 +185,10 @@ export default function ResultsDisplay({
   spouseIncome,
   valentine,
   onCellClick: onCellClickProp,
+  esiStatus,
 }) {
+  const showHealth = !esiStatus?.head && !esiStatus?.spouse;
   const [activeTab, setActiveTab] = useState("summary");
-  const [showHealth, setShowHealth] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [cellSelection, setCellSelection] = useState(null);
 
@@ -167,15 +215,42 @@ export default function ResultsDisplay({
 
   const activeResults = cellResults || results;
 
-  const effectiveTab = (!showHealth && activeTab === "healthcare") ? "summary" : activeTab;
-  const currentTab = TABS.find((t) => t.key === effectiveTab);
-  const rows = computeTableData(activeResults, effectiveTab, { showHealth });
+  const currentTab = TABS.find((t) => t.key === activeTab);
+  const rows = computeTableData(activeResults, activeTab, { showHealth });
+
+  const EMPTY_MESSAGES = {
+    summary: "No data available for this scenario.",
+    taxes: "No tax liability at these income levels.",
+    benefits: "Not eligible for benefit programs at these income levels.",
+    credits: "No federal refundable credits at these income levels.",
+    state: "No state credits available for this state or income level.",
+  };
 
   let heatmapKey = currentTab.heatmapKey;
   if (showHealth && activeTab === "summary") {
     heatmapKey = "Net Income (with Healthcare)";
   }
-  const heatmapGrid = heatmapData?.grids?.[heatmapKey] || null;
+
+  // For benefits tab with healthcare, combine grids element-wise
+  let heatmapGrid = heatmapData?.grids?.[heatmapKey] || null;
+  let combinedHeadLine = heatmapData?.headLines?.[heatmapKey];
+  let combinedSpouseLine = heatmapData?.spouseLines?.[heatmapKey];
+
+  if (showHealth && activeTab === "benefits" && heatmapData?.grids) {
+    const benefitsGrid = heatmapData.grids["Benefits"];
+    const healthGrid = heatmapData.grids["Healthcare Benefits"];
+    if (benefitsGrid && healthGrid) {
+      heatmapGrid = benefitsGrid.map((row, i) =>
+        row.map((val, j) => val + (healthGrid[i]?.[j] || 0)),
+      );
+    }
+    const bHead = heatmapData.headLines?.["Benefits"];
+    const hHead = heatmapData.headLines?.["Healthcare Benefits"];
+    if (bHead && hHead) combinedHeadLine = bHead.map((v, i) => v + (hHead[i] || 0));
+    const bSpouse = heatmapData.spouseLines?.["Benefits"];
+    const hSpouse = heatmapData.spouseLines?.["Healthcare Benefits"];
+    if (bSpouse && hSpouse) combinedSpouseLine = bSpouse.map((v, i) => v + (hSpouse[i] || 0));
+  }
 
   const HEATMAP_AGG = {
     "Net Income": "householdNetIncome",
@@ -185,7 +260,12 @@ export default function ResultsDisplay({
   };
   const aggKey = HEATMAP_AGG[heatmapKey];
   let markerDelta = null;
-  if (aggKey) {
+  if (activeTab === "benefits" && showHealth) {
+    const m = (results.married.aggregates.householdBenefits || 0) + (results.married.aggregates.healthcareBenefitValue || 0);
+    const h = (results.headSingle.aggregates.householdBenefits || 0) + (results.headSingle.aggregates.healthcareBenefitValue || 0);
+    const s = (results.spouseSingle.aggregates.householdBenefits || 0) + (results.spouseSingle.aggregates.healthcareBenefitValue || 0);
+    markerDelta = m - (h + s);
+  } else if (aggKey) {
     const m = results.married.aggregates[aggKey] || 0;
     const h = results.headSingle.aggregates[aggKey] || 0;
     const s = results.spouseSingle.aggregates[aggKey] || 0;
@@ -213,7 +293,9 @@ export default function ResultsDisplay({
     markerDelta,
     onCellClick: heatmapData?.programData ? handleCellClick : undefined,
     selectedCell: cellSelection,
-    label: heatmapKey,
+    label: (showHealth && activeTab === "benefits") ? "Benefits (incl. Healthcare)" : heatmapKey,
+    headLine: combinedHeadLine,
+    spouseLine: combinedSpouseLine,
   } : null;
 
   const heatmapContent = heatmapLoading ? (
@@ -239,12 +321,13 @@ export default function ResultsDisplay({
       <HeadlineBanner
         results={activeResults}
         showHealth={showHealth}
+        activeTab={activeTab}
       />
       <div className="tab-bar">
-        {TABS.filter((tab) => tab.key !== "healthcare" || showHealth).map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.key}
-            className={`tab-btn ${effectiveTab === tab.key ? "active" : ""}`}
+            className={`tab-btn ${activeTab === tab.key ? "active" : ""}`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -254,15 +337,7 @@ export default function ResultsDisplay({
 
       <div className="tab-content-split">
         <div className="split-table">
-          <DataTable rows={rows} />
-          <label className="health-toggle" title="Include the estimated cash value of healthcare coverage (Medicaid, CHIP, ACA subsidies). These are not cash benefits but represent the value of coverage you would otherwise need to purchase.">
-            <input
-              type="checkbox"
-              checked={showHealth}
-              onChange={(e) => setShowHealth(e.target.checked)}
-            />
-            Include healthcare
-          </label>
+          <DataTable rows={rows} emptyMessage={EMPTY_MESSAGES[activeTab]} />
         </div>
 
         {heatmapContent && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import InputForm from "./components/InputForm";
 import ResultsDisplay from "./components/ResultsDisplay";
 import { getCategorizedPrograms, getHeatmapData, DEFAULT_YEAR } from "./api";
+import { formatCurrency } from "./utils";
 
 // URL state helpers
 function encodeToHash(formData) {
@@ -23,6 +24,8 @@ function encodeToHash(formData) {
         .join(","),
     );
   }
+  if (formData.esiStatus?.head) p.set("he", "1");
+  if (formData.esiStatus?.spouse) p.set("se", "1");
   if (formData.year && formData.year !== DEFAULT_YEAR) {
     p.set("year", formData.year);
   }
@@ -45,7 +48,7 @@ function decodeFromHash() {
           })
       : [];
     return {
-      stateCode: p.get("state"),
+      stateCode: p.get("state") === "NY" && p.get("nyc") === "1" ? "NYC" : p.get("state"),
       headIncome: Number(p.get("head")),
       spouseIncome: Number(p.get("spouse") || 0),
       headAge: Number(p.get("ha") || 40),
@@ -57,6 +60,10 @@ function decodeFromHash() {
       pregnancyStatus: {
         head: p.get("hp") === "1",
         spouse: p.get("sp") === "1",
+      },
+      esiStatus: {
+        head: p.get("he") === "1",
+        spouse: p.get("se") === "1",
       },
       children,
       year: p.get("year") || DEFAULT_YEAR,
@@ -76,6 +83,7 @@ export default function App() {
   const [valentine, setValentine] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [externalIncomes, setExternalIncomes] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const initialValues = useRef(decodeFromHash());
   const didAutoCalc = useRef(false);
 
@@ -119,9 +127,11 @@ export default function App() {
     window.history.replaceState(null, "", `#${encodeToHash(data)}`);
 
     const {
-      stateCode, headIncome, spouseIncome, headAge, spouseAge,
-      children, disabilityStatus, pregnancyStatus, year,
+      headIncome, spouseIncome, headAge, spouseAge,
+      children, disabilityStatus, pregnancyStatus, esiStatus, year,
     } = data;
+    const stateCode = data.stateCode === "NYC" ? "NY" : data.stateCode;
+    const inNYC = data.stateCode === "NYC";
 
     setLoading(true);
     setError(null);
@@ -132,6 +142,7 @@ export default function App() {
       const result = await getCategorizedPrograms(
         stateCode, headIncome, spouseIncome, children,
         disabilityStatus, year, pregnancyStatus, headAge, spouseAge,
+        esiStatus, inNYC,
       );
       setResults(result);
       setLoading(false);
@@ -141,6 +152,7 @@ export default function App() {
         const heatmap = await getHeatmapData(
           stateCode, children, disabilityStatus, year,
           pregnancyStatus, headIncome, spouseIncome, headAge, spouseAge,
+          esiStatus, inNYC,
         );
         setHeatmapData(heatmap);
       } catch (e) {
@@ -191,20 +203,30 @@ export default function App() {
             ? "Will tying the knot cost you? Find out this Valentine's Day."
             : "Evaluate marriage penalties and bonuses."}
         </p>
-        <p className="powered-by">
-          Powered by{" "}
-          <a href="https://github.com/policyengine/policyengine-us" target="_blank" rel="noreferrer">policyengine-us</a>.
-        </p>
       </header>
 
       <div className="app-layout">
-        <aside className="app-sidebar">
-          <InputForm
-            onCalculate={handleCalculate}
-            loading={loading}
-            initialValues={initialValues.current}
-            externalIncomes={externalIncomes}
-          />
+        <aside className={`app-sidebar ${results ? "has-results" : ""} ${sidebarOpen ? "sidebar-open" : ""}`}>
+          {results && (
+            <button
+              type="button"
+              className="sidebar-toggle"
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              <span className="sidebar-toggle-summary">
+                {formData?.stateCode} &middot; {formatCurrency(formData?.headIncome ?? 0)} &amp; {formatCurrency(formData?.spouseIncome ?? 0)}
+              </span>
+              <span className="sidebar-toggle-arrow">{sidebarOpen ? "\u25B2" : "\u25BC"}</span>
+            </button>
+          )}
+          <div className="sidebar-collapsible">
+            <InputForm
+              onCalculate={(data) => { setSidebarOpen(false); handleCalculate(data); }}
+              loading={loading}
+              initialValues={initialValues.current}
+              externalIncomes={externalIncomes}
+            />
+          </div>
         </aside>
 
         <main className="app-main">
@@ -231,6 +253,7 @@ export default function App() {
               spouseIncome={formData?.spouseIncome ?? 0}
               valentine={valentine}
               onCellClick={handleCellClick}
+              esiStatus={formData?.esiStatus}
             />
           )}
         </main>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { US_STATES } from "../utils";
 import { AVAILABLE_YEARS, DEFAULT_YEAR } from "../api";
 
@@ -35,11 +35,45 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
   const [spouseAge, setSpouseAge] = useState(iv.spouseAge ? String(iv.spouseAge) : "40");
   const [headPregnant, setHeadPregnant] = useState(iv.pregnancyStatus?.head || false);
   const [spousePregnant, setSpousePregnant] = useState(iv.pregnancyStatus?.spouse || false);
+  const [headESI, setHeadESI] = useState(iv.esiStatus?.head || false);
+  const [spouseESI, setSpouseESI] = useState(iv.esiStatus?.spouse || false);
   const [children, setChildren] = useState(
     (iv.children || []).map((c) => ({ ...c, age: String(c.age) })),
   );
   const [year, setYear] = useState(iv.year || DEFAULT_YEAR);
   const [errors, setErrors] = useState({});
+
+  // Auto-recalculate on form changes (debounced)
+  const autoCalcReady = useRef(false);
+  const debounceRef = useRef(null);
+  const childrenKey = children.map((c) => `${c.age}:${c.isDisabled}`).join(",");
+
+  function buildFormData() {
+    return {
+      stateCode,
+      headIncome: parseNumber(headIncome),
+      spouseIncome: parseNumber(spouseIncome),
+      headAge: Number(headAge) || 40,
+      spouseAge: Number(spouseAge) || 40,
+      children: children.map((c) => ({ ...c, age: Number(c.age) || 0 })),
+      disabilityStatus: { head: headDisabled, spouse: spouseDisabled },
+      pregnancyStatus: { head: headPregnant, spouse: spousePregnant },
+      esiStatus: { head: headESI, spouse: spouseESI },
+      year,
+    };
+  }
+
+  useEffect(() => {
+    if (!autoCalcReady.current) {
+      autoCalcReady.current = true;
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onCalculate(buildFormData()), 800);
+    return () => clearTimeout(debounceRef.current);
+  }, [stateCode, headIncome, spouseIncome, headAge, spouseAge,
+    headDisabled, spouseDisabled, headPregnant, spousePregnant,
+    headESI, spouseESI, year, childrenKey]);
 
   // Sync income fields when heatmap cell is clicked
   useEffect(() => {
@@ -91,17 +125,7 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
 
   function handleSubmit(e) {
     e.preventDefault();
-    onCalculate({
-      stateCode,
-      headIncome: parseNumber(headIncome),
-      spouseIncome: parseNumber(spouseIncome),
-      headAge: Number(headAge) || 40,
-      spouseAge: Number(spouseAge) || 40,
-      children: children.map((c) => ({ ...c, age: Number(c.age) || 0 })),
-      disabilityStatus: { head: headDisabled, spouse: spouseDisabled },
-      pregnancyStatus: { head: headPregnant, spouse: spousePregnant },
-      year,
-    });
+    onCalculate(buildFormData());
   }
 
   return (
@@ -140,6 +164,8 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
         onDisabledChange={setHeadDisabled}
         pregnant={headPregnant}
         onPregnantChange={setHeadPregnant}
+        hasESI={headESI}
+        onESIChange={setHeadESI}
       />
 
       <PersonSection
@@ -157,6 +183,8 @@ export default function InputForm({ onCalculate, loading, initialValues, externa
         onDisabledChange={setSpouseDisabled}
         pregnant={spousePregnant}
         onPregnantChange={setSpousePregnant}
+        hasESI={spouseESI}
+        onESIChange={setSpouseESI}
       />
 
       <div className="sf-children">
@@ -212,13 +240,17 @@ function PersonSection({
   title, accent, income, onIncomeChange, onIncomeBlur, incomeError,
   age, onAgeChange, onAgeBlur, ageError,
   disabled, onDisabledChange, pregnant, onPregnantChange,
+  hasESI, onESIChange,
 }) {
   return (
     <div className={`sf-person sf-person--${accent}`}>
       <div className="sf-person-title">{title}</div>
       <div className="sf-row">
         <div className="sf-field sf-grow">
-          <label>Income</label>
+          <label className="sf-label-tip">
+            Income
+            <span className="sf-label-tooltip">Wages and salaries (not dividends, interest, etc.)</span>
+          </label>
           <div className="sf-income-wrap">
             <span className="sf-dollar">$</span>
             <input
@@ -256,6 +288,11 @@ function PersonSection({
           <input type="checkbox" checked={pregnant} onChange={(e) => onPregnantChange(e.target.checked)} />
           <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
           Pregnant
+        </label>
+        <label className="sf-toggle">
+          <input type="checkbox" checked={hasESI} onChange={(e) => onESIChange(e.target.checked)} />
+          <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
+          Employer insurance
         </label>
       </div>
     </div>

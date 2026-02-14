@@ -67,6 +67,8 @@ export function createSituation(
   pregnancyStatus = {},
   headAge = DEFAULT_AGE,
   spouseAge = DEFAULT_AGE,
+  esiStatus = {},
+  inNYC = false,
 ) {
   const members = ["you"];
   const maritalUnitMembers = ["you"];
@@ -77,6 +79,7 @@ export function createSituation(
       employment_income: { [year]: headIncome },
       is_disabled: { [year]: disabilityStatus.head || false },
       is_pregnant: { [year]: pregnancyStatus.head || false },
+      ...(esiStatus.head ? { has_esi: { [year]: true } } : {}),
     },
   };
 
@@ -86,6 +89,7 @@ export function createSituation(
       employment_income: { [year]: spouseIncome },
       is_disabled: { [year]: disabilityStatus.spouse || false },
       is_pregnant: { [year]: pregnancyStatus.spouse || false },
+      ...(esiStatus.spouse ? { has_esi: { [year]: true } } : {}),
     };
     members.push("your partner");
     maritalUnitMembers.push("your partner");
@@ -119,6 +123,7 @@ export function createSituation(
       "your household": {
         members: [...members],
         state_name: { [year]: stateCode },
+        ...(inNYC ? { in_nyc: { [year]: true } } : {}),
       },
     },
   };
@@ -296,6 +301,8 @@ export async function getPrograms(
   pregnancyStatus = {},
   headAge = DEFAULT_AGE,
   spouseAge = DEFAULT_AGE,
+  esiStatus = {},
+  inNYC = false,
 ) {
   const situation = createSituation(
     stateCode,
@@ -307,6 +314,8 @@ export async function getPrograms(
     pregnancyStatus,
     headAge,
     spouseAge,
+    esiStatus,
+    inNYC,
   );
   addOutputVariables(situation, year, stateCode);
 
@@ -351,6 +360,8 @@ export async function getCategorizedPrograms(
   pregnancyStatus = {},
   headAge = DEFAULT_AGE,
   spouseAge = DEFAULT_AGE,
+  esiStatus = {},
+  inNYC = false,
 ) {
   const [married, headSingle, spouseSingle] = await Promise.all([
     getPrograms(
@@ -363,6 +374,8 @@ export async function getCategorizedPrograms(
       pregnancyStatus,
       headAge,
       spouseAge,
+      esiStatus,
+      inNYC,
     ),
     getPrograms(
       stateCode,
@@ -373,6 +386,9 @@ export async function getCategorizedPrograms(
       year,
       { head: pregnancyStatus.head || false },
       headAge,
+      DEFAULT_AGE,
+      { head: esiStatus.head || false },
+      inNYC,
     ),
     getPrograms(
       stateCode,
@@ -383,6 +399,9 @@ export async function getCategorizedPrograms(
       year,
       { head: pregnancyStatus.spouse || false },
       spouseAge,
+      DEFAULT_AGE,
+      { head: esiStatus.spouse || false },
+      inNYC,
     ),
   ]);
 
@@ -401,13 +420,15 @@ export async function getHeatmapData(
   spouseIncome = 0,
   headAge = DEFAULT_AGE,
   spouseAge = DEFAULT_AGE,
+  esiStatus = {},
+  inNYC = false,
 ) {
   const rawMax = Math.max(80000, headIncome, spouseIncome);
   const step = Math.ceil(rawMax / 32 / 2500) * 2500;
   const maxIncome = step * 32;
   const count = 33;
 
-  function buildHeatmapSituation(includeSpouse, childrenList, disability, pregnancy, hAge, sAge) {
+  function buildHeatmapSituation(includeSpouse, childrenList, disability, pregnancy, hAge, sAge, esi) {
     const situation = createSituation(
       stateCode,
       maxIncome,
@@ -418,6 +439,8 @@ export async function getHeatmapData(
       pregnancy,
       hAge,
       sAge,
+      esi || {},
+      inNYC,
     );
     addOutputVariables(situation, year, stateCode);
 
@@ -436,15 +459,17 @@ export async function getHeatmapData(
   }
 
   const marriedSituation = buildHeatmapSituation(
-    true, children, disabilityStatus, pregnancyStatus, headAge, spouseAge,
+    true, children, disabilityStatus, pregnancyStatus, headAge, spouseAge, esiStatus,
   );
   const headSingleSituation = buildHeatmapSituation(
     false, children, disabilityStatus,
-    { head: pregnancyStatus.head || false }, headAge,
+    { head: pregnancyStatus.head || false }, headAge, undefined,
+    { head: esiStatus.head || false },
   );
   const spouseSingleSituation = buildHeatmapSituation(
     false, [], { head: disabilityStatus.spouse || false },
-    { head: pregnancyStatus.spouse || false }, spouseAge,
+    { head: pregnancyStatus.spouse || false }, spouseAge, undefined,
+    { head: esiStatus.spouse || false },
   );
 
   const [marriedResult, headResult, spouseResult] = await Promise.all([
@@ -504,16 +529,23 @@ export async function getHeatmapData(
     // Transpose: API returns head-major (row=head, col=spouse) but Plotly
     // z[row][col] maps to y[row],x[col] and x=head, y=spouse, so we need
     // row=spouse, col=head.
-    return deltaGrid[0].map((_, col) =>
+    const transposed = deltaGrid[0].map((_, col) =>
       deltaGrid.map((row) => row[col]),
     );
+    return { grid: transposed, headLine: headFlat, spouseLine: spouseFlat };
   }
+
+  const headLines = {};
+  const spouseLines = {};
 
   for (let v = 0; v < gridVars.length; v++) {
     const varName = gridVars[v];
-    const transposed = buildDeltaGrid(
+    const { grid: transposed, headLine, spouseLine } = buildDeltaGrid(
       marriedData[varName], headData[varName], spouseData[varName],
     );
+
+    headLines[tabNames[v]] = headLine;
+    spouseLines[tabNames[v]] = spouseLine;
 
     if (varName === "household_tax_before_refundable_credits") {
       grids[tabNames[v]] = transposed.map((row) => row.map((val) => -val));
@@ -528,8 +560,14 @@ export async function getHeatmapData(
   grids["Federal Credits"] = totalCreditsGrid.map((row, i) =>
     row.map((val, j) => val - stateCreditsGrid[i][j]),
   );
+  headLines["Federal Credits"] = (headLines["Refundable Tax Credits"] || []).map(
+    (v, i) => v - (headLines["State Credits"]?.[i] || 0),
+  );
+  spouseLines["Federal Credits"] = (spouseLines["Refundable Tax Credits"] || []).map(
+    (v, i) => v - (spouseLines["State Credits"]?.[i] || 0),
+  );
 
-  return { grids, maxIncome, count, programData, stateCreditEntries };
+  return { grids, maxIncome, count, programData, stateCreditEntries, headLines, spouseLines };
 }
 
 export function buildCellResults(programData, headIdx, spouseIdx, count, stateCreditEntries) {
