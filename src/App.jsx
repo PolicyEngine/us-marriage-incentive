@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import InputForm from "./components/InputForm";
 import ResultsDisplay from "./components/ResultsDisplay";
-import { getCategorizedPrograms, getHeatmapData, DEFAULT_YEAR } from "./api";
+import { getCategorizedPrograms, getHeatmapData } from "./api";
 import { formatCurrency } from "./utils";
+import { getCountry, COUNTRIES } from "./countries";
 
 // URL state helpers
-function encodeToHash(formData) {
+function encodeToHash(countryId, formData) {
+  const country = getCountry(countryId);
   const p = new URLSearchParams();
-  p.set("state", formData.stateCode);
+  if (countryId !== "us") p.set("country", countryId);
+  p.set("region", formData.regionCode || formData.stateCode);
   p.set("head", formData.headIncome);
   p.set("spouse", formData.spouseIncome);
-  if (formData.headAge && formData.headAge !== 40) p.set("ha", formData.headAge);
-  if (formData.spouseAge && formData.spouseAge !== 40) p.set("sa", formData.spouseAge);
+  if (formData.headAge && formData.headAge !== country.defaultAge) p.set("ha", formData.headAge);
+  if (formData.spouseAge && formData.spouseAge !== country.defaultAge) p.set("sa", formData.spouseAge);
   if (formData.disabilityStatus.head) p.set("hd", "1");
   if (formData.disabilityStatus.spouse) p.set("sd", "1");
   if (formData.pregnancyStatus?.head) p.set("hp", "1");
@@ -26,7 +29,7 @@ function encodeToHash(formData) {
   }
   if (formData.esiStatus?.head) p.set("he", "1");
   if (formData.esiStatus?.spouse) p.set("se", "1");
-  if (formData.year && formData.year !== DEFAULT_YEAR) {
+  if (formData.year && formData.year !== country.defaultYear) {
     p.set("year", formData.year);
   }
   return p.toString();
@@ -37,7 +40,11 @@ function decodeFromHash() {
   if (!hash) return null;
   try {
     const p = new URLSearchParams(hash);
-    if (!p.has("state") || !p.has("head")) return null;
+    // Support both old "state" param and new "region" param
+    const region = p.get("region") || p.get("state");
+    if (!region || !p.has("head")) return null;
+    const countryId = p.get("country") || "us";
+    const country = getCountry(countryId);
     const children = p.has("c")
       ? p
           .get("c")
@@ -47,12 +54,15 @@ function decodeFromHash() {
             return { age: Number(age), isDisabled: dis === "1" };
           })
       : [];
+    const resolvedRegion = region === "NY" && p.get("nyc") === "1" ? "NYC" : region;
     return {
-      stateCode: p.get("state") === "NY" && p.get("nyc") === "1" ? "NYC" : p.get("state"),
+      countryId,
+      regionCode: resolvedRegion,
+      stateCode: resolvedRegion,
       headIncome: Number(p.get("head")),
       spouseIncome: Number(p.get("spouse") || 0),
-      headAge: Number(p.get("ha") || 40),
-      spouseAge: Number(p.get("sa") || 40),
+      headAge: Number(p.get("ha") || country.defaultAge),
+      spouseAge: Number(p.get("sa") || country.defaultAge),
       disabilityStatus: {
         head: p.get("hd") === "1",
         spouse: p.get("sd") === "1",
@@ -66,7 +76,7 @@ function decodeFromHash() {
         spouse: p.get("se") === "1",
       },
       children,
-      year: p.get("year") || DEFAULT_YEAR,
+      year: p.get("year") || country.defaultYear,
     };
   } catch {
     return null;
@@ -74,6 +84,10 @@ function decodeFromHash() {
 }
 
 export default function App() {
+  const decoded = useRef(decodeFromHash());
+  const [countryId, setCountryId] = useState(decoded.current?.countryId || "us");
+  const country = getCountry(countryId);
+
   const [results, setResults] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -84,7 +98,6 @@ export default function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [externalIncomes, setExternalIncomes] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const initialValues = useRef(decodeFromHash());
   const didAutoCalc = useRef(false);
 
   // Swap favicon for valentine mode
@@ -104,7 +117,7 @@ export default function App() {
     }
   }, [valentine]);
 
-  // Valentine mode toggle on "v" key (ignore when typing in inputs)
+  // Valentine mode toggle on "v" key
   useEffect(() => {
     function handleKey(e) {
       if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
@@ -122,16 +135,30 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
+  // Clear results when country changes
+  function handleCountryChange(newId) {
+    setCountryId(newId);
+    setResults(null);
+    setHeatmapData(null);
+    setFormData(null);
+    setError(null);
+  }
+
   async function handleCalculate(data) {
     setFormData(data);
-    window.history.replaceState(null, "", `#${encodeToHash(data)}`);
+    const hash = `#${encodeToHash(countryId, data)}`;
+    window.history.replaceState(null, "", hash);
+    if (window.self !== window.top) {
+      window.parent.postMessage({ type: "hashchange", hash }, "*");
+    }
 
     const {
       headIncome, spouseIncome, headAge, spouseAge,
       children, disabilityStatus, pregnancyStatus, esiStatus, year,
     } = data;
-    const stateCode = data.stateCode === "NYC" ? "NY" : data.stateCode;
-    const inNYC = data.stateCode === "NYC";
+    const regionCode = data.regionCode || data.stateCode;
+    const effectiveRegion = countryId === "us" && regionCode === "NYC" ? "NY" : regionCode;
+    const inNYC = countryId === "us" && regionCode === "NYC";
 
     setLoading(true);
     setError(null);
@@ -140,7 +167,7 @@ export default function App() {
 
     try {
       const result = await getCategorizedPrograms(
-        stateCode, headIncome, spouseIncome, children,
+        countryId, effectiveRegion, headIncome, spouseIncome, children,
         disabilityStatus, year, pregnancyStatus, headAge, spouseAge,
         esiStatus, inNYC,
       );
@@ -150,7 +177,7 @@ export default function App() {
       setHeatmapLoading(true);
       try {
         const heatmap = await getHeatmapData(
-          stateCode, children, disabilityStatus, year,
+          countryId, effectiveRegion, children, disabilityStatus, year,
           pregnancyStatus, headIncome, spouseIncome, headAge, spouseAge,
           esiStatus, inNYC,
         );
@@ -167,15 +194,14 @@ export default function App() {
   }
 
   function handleCellClick(headIncome, spouseIncome) {
-    // New object reference each time to trigger useEffect even if same values
     setExternalIncomes({ headIncome, spouseIncome });
   }
 
   // Auto-calculate if URL has params on first load
   useEffect(() => {
-    if (initialValues.current && !didAutoCalc.current) {
+    if (decoded.current && !didAutoCalc.current) {
       didAutoCalc.current = true;
-      handleCalculate(initialValues.current);
+      handleCalculate(decoded.current);
     }
   }, []);
 
@@ -197,12 +223,14 @@ export default function App() {
       )}
 
       <header className="app-header">
-        <h1>{valentine ? "Love & Taxes Calculator" : "Marriage Incentive Calculator"}</h1>
-        <p>
-          {valentine
-            ? "Will tying the knot cost you? Find out this Valentine's Day."
-            : "Evaluate marriage penalties and bonuses."}
-        </p>
+        <div className="header-text">
+          <h1>{valentine ? "Love & taxes calculator" : "Marriage calculator"}</h1>
+          <p>
+            {valentine
+              ? "Will tying the knot cost you? Find out this Valentine\u2019s Day."
+              : "See how marriage would change your taxes and benefits."}
+          </p>
+        </div>
       </header>
 
       <div className="app-layout">
@@ -214,16 +242,21 @@ export default function App() {
               onClick={() => setSidebarOpen((v) => !v)}
             >
               <span className="sidebar-toggle-summary">
-                {formData?.stateCode} &middot; {formatCurrency(formData?.headIncome ?? 0)} &amp; {formatCurrency(formData?.spouseIncome ?? 0)}
+                {formData?.regionCode || formData?.stateCode} &middot; {formatCurrency(formData?.headIncome ?? 0, false, country.currencySymbol)} &amp; {formatCurrency(formData?.spouseIncome ?? 0, false, country.currencySymbol)}
               </span>
               <span className="sidebar-toggle-arrow">{sidebarOpen ? "\u25B2" : "\u25BC"}</span>
             </button>
           )}
           <div className="sidebar-collapsible">
             <InputForm
+              country={country}
+              countries={COUNTRIES}
+              countryId={countryId}
+              onCountryChange={handleCountryChange}
               onCalculate={(data) => { setSidebarOpen(false); handleCalculate(data); }}
+              onInputChange={() => { setResults(null); setHeatmapData(null); }}
               loading={loading}
-              initialValues={initialValues.current}
+              initialValues={decoded.current}
               externalIncomes={externalIncomes}
             />
           </div>
@@ -254,14 +287,12 @@ export default function App() {
               valentine={valentine}
               onCellClick={handleCellClick}
               esiStatus={formData?.esiStatus}
+              country={country}
             />
           )}
         </main>
       </div>
 
-      <p className="note">
-        We attribute all dependents to the head of household when considering unmarried filers.
-      </p>
     </div>
   );
 }

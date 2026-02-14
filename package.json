@@ -1,5 +1,5 @@
 {
-  "name": "us-marriage-incentive",
+  "name": "marriage",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -13,13 +13,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "plotly.js": "^2.35.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-plotly.js": "^2.6.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^4.3.0",
+    "jsdom": "^28.0.0",
     "vite": "^5.4.0",
     "vitest": "^4.0.18"
   }

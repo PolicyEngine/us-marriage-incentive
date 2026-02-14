@@ -1,54 +1,43 @@
-import metadata from "./metadata.json";
+import { getCountry } from "./countries";
 
 const API_BASE = "https://api.policyengine.org";
-export const DEFAULT_YEAR = "2026";
-export const AVAILABLE_YEARS = ["2024", "2025", "2026", "2027", "2028"];
-export const DEFAULT_AGE = 40;
 
-// ---------- entity-aware helpers for metadata groups ----------
+// ---------- per-country computed data (cached) ----------
 
-// Container names used in the situation / response for each entity type
-const ENTITY_CONTAINERS = {
-  household: { key: "households", name: "your household" },
-  tax_unit: { key: "tax_units", name: "your tax unit" },
-  spm_unit: { key: "spm_units", name: "your spm_unit" },
-};
+const _cache = {};
 
-/**
- * All detail variable entries from metadata (every category except aggregates).
- */
-const ALL_DETAIL_VARS = [
-  ...metadata.benefits,
-  ...metadata.credits,
-  ...metadata.taxes,
-  ...metadata.healthcare,
-  ...metadata.stateCredits,
-  ...metadata.stateTaxes,
-];
+function countryData(countryId) {
+  if (_cache[countryId]) return _cache[countryId];
+  const country = getCountry(countryId);
+  const m = country.metadata;
+  const allDetailVars = [
+    ...m.benefits,
+    ...(m.credits || []),
+    ...m.taxes,
+    ...(m.healthcare || []),
+    ...(m.stateCredits || []),
+    ...(m.stateTaxes || []),
+  ];
+  const allVars = [...allDetailVars, ...m.aggregates];
 
-/**
- * All variables (detail + aggregates) — used when building heatmap programData.
- */
-const ALL_VARS = [...ALL_DETAIL_VARS, ...metadata.aggregates];
-
-// Group detail vars by entity for efficient iteration
-function groupByEntity(vars) {
-  const groups = { household: [], tax_unit: [], spm_unit: [], person: [] };
-  for (const v of vars) {
-    (groups[v.entity] || []).push(v.variable);
+  // Group detail vars by entity type
+  const detailByEntity = { person: [] };
+  for (const key of Object.keys(country.entityContainers)) {
+    detailByEntity[key] = [];
   }
-  return groups;
+  for (const v of allDetailVars) {
+    if (detailByEntity[v.entity]) detailByEntity[v.entity].push(v.variable);
+  }
+
+  _cache[countryId] = { country, m, allDetailVars, allVars, detailByEntity };
+  return _cache[countryId];
 }
 
-const DETAIL_BY_ENTITY = groupByEntity(ALL_DETAIL_VARS);
+// ---------- state credit helpers (US only) ----------
 
-/**
- * Get per-state credit entries for a given state code.
- * NYC credits are included when stateCode is "NY".
- */
-function getStateCreditEntries(stateCode) {
+function getStateCreditEntries(metadata, stateCode) {
+  if (!metadata.stateCreditsByState) return [];
   const entries = metadata.stateCreditsByState[stateCode] || [];
-  // NYC credits are nested under NY
   if (stateCode === "NY" && metadata.stateCreditsByState.NYC) {
     return [...entries, ...metadata.stateCreditsByState.NYC];
   }
@@ -57,19 +46,7 @@ function getStateCreditEntries(stateCode) {
 
 // ---------- situation construction ----------
 
-export function createSituation(
-  stateCode,
-  headIncome,
-  disabilityStatus,
-  spouseIncome = null,
-  children = [],
-  year = DEFAULT_YEAR,
-  pregnancyStatus = {},
-  headAge = DEFAULT_AGE,
-  spouseAge = DEFAULT_AGE,
-  esiStatus = {},
-  inNYC = false,
-) {
+function createUSSituation(regionCode, headIncome, disabilityStatus, spouseIncome, children, year, pregnancyStatus, headAge, spouseAge, esiStatus, inNYC) {
   const members = ["you"];
   const maritalUnitMembers = ["you"];
 
@@ -122,45 +99,106 @@ export function createSituation(
     households: {
       "your household": {
         members: [...members],
-        state_name: { [year]: stateCode },
+        state_name: { [year]: regionCode },
         ...(inNYC ? { in_nyc: { [year]: true } } : {}),
       },
     },
   };
 }
 
-function addOutputVariables(situation, year, stateCode) {
+function createUKSituation(regionCode, headIncome, disabilityStatus, spouseIncome, children, year, headAge, spouseAge) {
+  const members = ["you"];
+
+  const people = {
+    you: {
+      age: { [year]: headAge },
+      employment_income: { [year]: headIncome },
+    },
+  };
+
+  if (spouseIncome !== null) {
+    people["your partner"] = {
+      age: { [year]: spouseAge },
+      employment_income: { [year]: spouseIncome },
+    };
+    members.push("your partner");
+  }
+
+  children.forEach((child, i) => {
+    const childId = `child_${i + 1}`;
+    people[childId] = {
+      age: { [year]: child.age },
+      employment_income: { [year]: 0 },
+    };
+    members.push(childId);
+  });
+
+  return {
+    people,
+    benunits: {
+      "your benefit unit": {
+        members: [...members],
+        is_married: { [year]: spouseIncome !== null },
+      },
+    },
+    households: {
+      "your household": {
+        members: [...members],
+        country: { [year]: regionCode },
+      },
+    },
+  };
+}
+
+export function createSituation(
+  countryId, regionCode, headIncome, disabilityStatus,
+  spouseIncome = null, children = [], year,
+  pregnancyStatus = {}, headAge = 40, spouseAge = 40,
+  esiStatus = {}, inNYC = false,
+) {
+  if (countryId === "uk") {
+    return createUKSituation(regionCode, headIncome, disabilityStatus, spouseIncome, children, year, headAge, spouseAge);
+  }
+  return createUSSituation(regionCode, headIncome, disabilityStatus, spouseIncome, children, year, pregnancyStatus, headAge, spouseAge, esiStatus, inNYC);
+}
+
+// ---------- output variable injection ----------
+
+function addOutputVariables(countryId, situation, year, regionCode) {
+  const { m, detailByEntity, country } = countryData(countryId);
+  const ec = country.entityContainers;
+
   // Aggregates — all are household-level
   const hh = situation.households["your household"];
-  for (const v of metadata.aggregates) {
+  for (const v of m.aggregates) {
     hh[v.variable] = { [year]: null };
   }
 
-  // Detail variables — placed at their correct entity container
-  for (const v of DETAIL_BY_ENTITY.household) {
-    hh[v] = { [year]: null };
+  // Detail variables by entity
+  if (detailByEntity.household) {
+    for (const v of detailByEntity.household) hh[v] = { [year]: null };
   }
 
-  const tu = situation.tax_units["your tax unit"];
-  for (const v of DETAIL_BY_ENTITY.tax_unit) {
-    tu[v] = { [year]: null };
-  }
-
-  const spm = situation.spm_units["your spm_unit"];
-  for (const v of DETAIL_BY_ENTITY.spm_unit) {
-    spm[v] = { [year]: null };
+  for (const [entity, vars] of Object.entries(detailByEntity)) {
+    if (entity === "household" || entity === "person") continue;
+    const container = ec[entity];
+    if (!container) continue;
+    const target = situation[container.key]?.[container.name];
+    if (!target) continue;
+    for (const v of vars) target[v] = { [year]: null };
   }
 
   for (const personName of Object.keys(situation.people)) {
     const person = situation.people[personName];
-    for (const v of DETAIL_BY_ENTITY.person) {
+    for (const v of (detailByEntity.person || [])) {
       person[v] = { [year]: null };
     }
   }
 
-  // Per-state credit variables (only for the selected state)
-  if (stateCode) {
-    for (const entry of getStateCreditEntries(stateCode)) {
+  // US-only: per-state credit variables
+  if (countryId === "us" && regionCode) {
+    const tu = situation.tax_units["your tax unit"];
+    for (const entry of getStateCreditEntries(m, regionCode)) {
       if (entry.entity === "person") {
         for (const person of Object.values(situation.people)) {
           person[entry.variable] = { [year]: null };
@@ -176,8 +214,9 @@ function addOutputVariables(situation, year, stateCode) {
 
 // ---------- API call ----------
 
-async function callApi(situation) {
-  const res = await fetch(`${API_BASE}/us/calculate`, {
+async function callApi(countryId, situation) {
+  const country = getCountry(countryId);
+  const res = await fetch(`${API_BASE}${country.apiPath}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ household: situation }),
@@ -198,24 +237,16 @@ async function callApi(situation) {
 // ---------- extraction helpers ----------
 
 function extractVal(result, entity, name, variable, year) {
-  try {
-    const val = result?.[entity]?.[name]?.[variable]?.[year];
-    if (val == null) return 0;
-    if (Array.isArray(val)) return val[0];
-    return val;
-  } catch {
-    return 0;
-  }
+  const val = result?.[entity]?.[name]?.[variable]?.[year];
+  if (val == null) return 0;
+  if (Array.isArray(val)) return val[0];
+  return val;
 }
 
 function extractArray(result, entity, name, variable, year) {
-  try {
-    const val = result?.[entity]?.[name]?.[variable]?.[year];
-    if (Array.isArray(val)) return val;
-    return val != null ? [val] : [];
-  } catch {
-    return [];
-  }
+  const val = result?.[entity]?.[name]?.[variable]?.[year];
+  if (Array.isArray(val)) return val;
+  return val != null ? [val] : [];
 }
 
 function sumPersonVar(result, variable, year) {
@@ -245,163 +276,130 @@ function sumPersonArray(result, variable, year) {
   return total || [];
 }
 
-// ---------- metadata-driven extraction ----------
+// ---------- metadata-driven extraction (parameterized by country) ----------
 
-/**
- * Extract a single scalar value for a metadata entry.
- */
-function extractMetaVal(result, entry, year) {
+function extractMetaVal(countryId, result, entry, year) {
+  const { country } = countryData(countryId);
   const { variable, entity } = entry;
   if (entity === "person") return sumPersonVar(result, variable, year);
-  const c = ENTITY_CONTAINERS[entity];
+  const c = country.entityContainers[entity];
+  if (!c) return 0;
   return extractVal(result, c.key, c.name, variable, year);
 }
 
-/**
- * Extract a dict { variableName: value } for a list of metadata entries.
- */
-function extractMetaDict(result, entries, year) {
+function extractMetaDict(countryId, result, entries, year) {
   const dict = {};
   for (const entry of entries) {
-    dict[entry.variable] = extractMetaVal(result, entry, year);
+    dict[entry.variable] = extractMetaVal(countryId, result, entry, year);
   }
   return dict;
 }
 
-/**
- * Extract an array value for a metadata entry (heatmap mode).
- */
-function extractMetaArray(result, entry, year) {
+function extractMetaArray(countryId, result, entry, year) {
+  const { country } = countryData(countryId);
   const { variable, entity } = entry;
   if (entity === "person") return sumPersonArray(result, variable, year);
-  const c = ENTITY_CONTAINERS[entity];
+  const c = country.entityContainers[entity];
+  if (!c) return [];
   return extractArray(result, c.key, c.name, variable, year);
 }
 
-/**
- * Extract all variables as arrays (for heatmap programData).
- */
-function extractAllArrays(result, year) {
+function extractAllArrays(countryId, result, year) {
+  const { allVars } = countryData(countryId);
   const data = {};
-  for (const entry of ALL_VARS) {
-    data[entry.variable] = extractMetaArray(result, entry, year);
+  for (const entry of allVars) {
+    data[entry.variable] = extractMetaArray(countryId, result, entry, year);
   }
   return data;
+}
+
+// ---------- aggregate extraction helper ----------
+
+function extractAggregates(countryId, result, year) {
+  const { country, m } = countryData(countryId);
+  const am = country.aggregateMap;
+  const aggs = {};
+  for (const [key, varName] of Object.entries(am)) {
+    if (!varName) {
+      aggs[key] = 0;
+      continue;
+    }
+    const entry = m.aggregates.find((a) => a.variable === varName);
+    aggs[key] = entry ? extractMetaVal(countryId, result, entry, year) : 0;
+  }
+  return aggs;
 }
 
 // ---------- public API ----------
 
 export async function getPrograms(
-  stateCode,
-  headIncome,
-  disabilityStatus,
-  spouseIncome = null,
-  children = [],
-  year = DEFAULT_YEAR,
-  pregnancyStatus = {},
-  headAge = DEFAULT_AGE,
-  spouseAge = DEFAULT_AGE,
-  esiStatus = {},
-  inNYC = false,
+  countryId, regionCode, headIncome, disabilityStatus,
+  spouseIncome = null, children = [], year,
+  pregnancyStatus = {}, headAge = 40, spouseAge = 40,
+  esiStatus = {}, inNYC = false,
 ) {
+  const { m } = countryData(countryId);
+
   const situation = createSituation(
-    stateCode,
-    headIncome,
-    disabilityStatus,
-    spouseIncome,
-    children,
-    year,
-    pregnancyStatus,
-    headAge,
-    spouseAge,
-    esiStatus,
-    inNYC,
+    countryId, regionCode, headIncome, disabilityStatus,
+    spouseIncome, children, year,
+    pregnancyStatus, headAge, spouseAge, esiStatus, inNYC,
   );
-  addOutputVariables(situation, year, stateCode);
+  addOutputVariables(countryId, situation, year, regionCode);
 
-  const result = await callApi(situation);
+  const result = await callApi(countryId, situation);
 
-  // Per-state credits: use label as key for display
-  const stateCreditEntries = getStateCreditEntries(stateCode);
+  // Per-state credits (US only)
+  const stateCreditEntries = getStateCreditEntries(m, regionCode);
   const perStateDict = {};
   for (const entry of stateCreditEntries) {
-    perStateDict[entry.label] = extractMetaVal(result, entry, year);
+    perStateDict[entry.label] = extractMetaVal(countryId, result, entry, year);
   }
 
+  const aggregates = extractAggregates(countryId, result, year);
+
   return {
-    aggregates: {
-      householdNetIncome: extractMetaVal(result, metadata.aggregates[0], year),
-      householdNetIncomeWithHealth: extractMetaVal(result, metadata.aggregates[1], year),
-      householdBenefits: extractMetaVal(result, metadata.aggregates[2], year),
-      householdRefundableCredits: extractMetaVal(result, metadata.aggregates[3], year),
-      householdTaxBeforeCredits: extractMetaVal(result, metadata.aggregates[4], year),
-      healthcareBenefitValue: extractMetaVal(result, metadata.aggregates[5], year),
-      householdRefundableStateCredits: extractMetaVal(result, metadata.aggregates[6], year),
-    },
-    benefits: extractMetaDict(result, metadata.benefits, year),
-    health: extractMetaDict(result, metadata.healthcare, year),
-    credits: extractMetaDict(result, metadata.credits, year),
-    stateCredits: {
-      state_refundable_credits: extractMetaVal(result, metadata.stateCredits[0], year),
-      ...perStateDict,
-    },
-    taxes: extractMetaDict(result, metadata.taxes, year),
-    stateTaxes: extractMetaDict(result, metadata.stateTaxes, year),
+    aggregates,
+    benefits: extractMetaDict(countryId, result, m.benefits, year),
+    health: extractMetaDict(countryId, result, m.healthcare || [], year),
+    credits: extractMetaDict(countryId, result, m.credits || [], year),
+    stateCredits: m.stateCredits?.length
+      ? {
+          state_refundable_credits: extractMetaVal(countryId, result, m.stateCredits[0], year),
+          ...perStateDict,
+        }
+      : {},
+    taxes: extractMetaDict(countryId, result, m.taxes, year),
+    stateTaxes: extractMetaDict(countryId, result, m.stateTaxes || [], year),
   };
 }
 
 export async function getCategorizedPrograms(
-  stateCode,
-  headIncome,
-  spouseIncome,
-  children,
-  disabilityStatus,
-  year = DEFAULT_YEAR,
-  pregnancyStatus = {},
-  headAge = DEFAULT_AGE,
-  spouseAge = DEFAULT_AGE,
-  esiStatus = {},
-  inNYC = false,
+  countryId, regionCode, headIncome, spouseIncome, children,
+  disabilityStatus, year, pregnancyStatus = {},
+  headAge = 40, spouseAge = 40, esiStatus = {}, inNYC = false,
 ) {
+  const country = getCountry(countryId);
+  const defAge = country.defaultAge;
+
   const [married, headSingle, spouseSingle] = await Promise.all([
     getPrograms(
-      stateCode,
-      headIncome,
-      disabilityStatus,
-      spouseIncome,
-      children,
-      year,
-      pregnancyStatus,
-      headAge,
-      spouseAge,
-      esiStatus,
-      inNYC,
+      countryId, regionCode, headIncome, disabilityStatus,
+      spouseIncome, children, year,
+      pregnancyStatus, headAge, spouseAge, esiStatus, inNYC,
     ),
     getPrograms(
-      stateCode,
-      headIncome,
-      disabilityStatus,
-      null,
-      children,
-      year,
-      { head: pregnancyStatus.head || false },
-      headAge,
-      DEFAULT_AGE,
-      { head: esiStatus.head || false },
-      inNYC,
+      countryId, regionCode, headIncome, disabilityStatus,
+      null, children, year,
+      { head: pregnancyStatus.head || false }, headAge, defAge,
+      { head: esiStatus.head || false }, inNYC,
     ),
     getPrograms(
-      stateCode,
-      spouseIncome,
+      countryId, regionCode, spouseIncome,
       { head: disabilityStatus.spouse || false },
-      null,
-      [],
-      year,
-      { head: pregnancyStatus.spouse || false },
-      spouseAge,
-      DEFAULT_AGE,
-      { head: esiStatus.spouse || false },
-      inNYC,
+      null, [], year,
+      { head: pregnancyStatus.spouse || false }, spouseAge, defAge,
+      { head: esiStatus.spouse || false }, inNYC,
     ),
   ]);
 
@@ -411,18 +409,13 @@ export async function getCategorizedPrograms(
 // ---------- Heatmap API calls ----------
 
 export async function getHeatmapData(
-  stateCode,
-  children,
-  disabilityStatus,
-  year = DEFAULT_YEAR,
-  pregnancyStatus = {},
-  headIncome = 0,
-  spouseIncome = 0,
-  headAge = DEFAULT_AGE,
-  spouseAge = DEFAULT_AGE,
-  esiStatus = {},
-  inNYC = false,
+  countryId, regionCode, children, disabilityStatus, year,
+  pregnancyStatus = {}, headIncome = 0, spouseIncome = 0,
+  headAge = 40, spouseAge = 40, esiStatus = {}, inNYC = false,
 ) {
+  const { m, country } = countryData(countryId);
+  const defAge = country.defaultAge;
+
   const rawMax = Math.max(80000, headIncome, spouseIncome);
   const step = Math.ceil(rawMax / 32 / 2500) * 2500;
   const maxIncome = step * 32;
@@ -430,19 +423,11 @@ export async function getHeatmapData(
 
   function buildHeatmapSituation(includeSpouse, childrenList, disability, pregnancy, hAge, sAge, esi) {
     const situation = createSituation(
-      stateCode,
-      maxIncome,
-      disability,
-      includeSpouse ? maxIncome : null,
-      childrenList,
-      year,
-      pregnancy,
-      hAge,
-      sAge,
-      esi || {},
-      inNYC,
+      countryId, regionCode, maxIncome, disability,
+      includeSpouse ? maxIncome : null, childrenList, year,
+      pregnancy, hAge, sAge, esi || {}, inNYC,
     );
-    addOutputVariables(situation, year, stateCode);
+    addOutputVariables(countryId, situation, year, regionCode);
 
     if (includeSpouse) {
       situation.axes = [
@@ -473,51 +458,30 @@ export async function getHeatmapData(
   );
 
   const [marriedResult, headResult, spouseResult] = await Promise.all([
-    callApi(marriedSituation),
-    callApi(headSingleSituation),
-    callApi(spouseSingleSituation),
+    callApi(countryId, marriedSituation),
+    callApi(countryId, headSingleSituation),
+    callApi(countryId, spouseSingleSituation),
   ]);
 
   // Extract all per-program arrays for click-to-detail
-  const marriedData = extractAllArrays(marriedResult, year);
-  const headData = extractAllArrays(headResult, year);
-  const spouseData = extractAllArrays(spouseResult, year);
+  const marriedData = extractAllArrays(countryId, marriedResult, year);
+  const headData = extractAllArrays(countryId, headResult, year);
+  const spouseData = extractAllArrays(countryId, spouseResult, year);
 
-  const stateCreditEntries = getStateCreditEntries(stateCode);
+  const stateCreditEntries = getStateCreditEntries(m, regionCode);
 
+  const allEntriesForProgram = [...countryData(countryId).allVars, ...stateCreditEntries];
   const programData = {};
-  for (const entry of [...ALL_VARS, ...stateCreditEntries]) {
+  for (const entry of allEntriesForProgram) {
     const v = entry.variable;
     programData[v] = {
-      married: marriedData[v] || extractMetaArray(marriedResult, entry, year),
-      head: headData[v] || extractMetaArray(headResult, entry, year),
-      spouse: spouseData[v] || extractMetaArray(spouseResult, entry, year),
+      married: marriedData[v] || extractMetaArray(countryId, marriedResult, entry, year),
+      head: headData[v] || extractMetaArray(countryId, headResult, entry, year),
+      spouse: spouseData[v] || extractMetaArray(countryId, spouseResult, entry, year),
     };
   }
 
-  // Build delta grids for the aggregate heatmap displays
-  // All variables here are household-level, so they vary correctly in 2D axes.
-  const gridVars = [
-    "household_net_income",
-    "household_net_income_including_health_benefits",
-    "household_benefits",
-    "household_refundable_tax_credits",
-    "household_tax_before_refundable_credits",
-    "healthcare_benefit_value",
-    "household_refundable_state_tax_credits",
-  ];
-  const tabNames = [
-    "Net Income",
-    "Net Income (with Healthcare)",
-    "Benefits",
-    "Refundable Tax Credits",
-    "Tax Before Refundable Credits",
-    "Healthcare Benefits",
-    "State Credits",
-  ];
-
-  const grids = {};
-
+  // Build delta grids from the country's gridConfig
   function buildDeltaGrid(marriedFlat, headFlat, spouseFlat) {
     const marriedGrid = [];
     for (let i = 0; i < count; i++) {
@@ -526,51 +490,48 @@ export async function getHeatmapData(
     const deltaGrid = marriedGrid.map((row, i) =>
       row.map((val, j) => val - (headFlat[i] + spouseFlat[j])),
     );
-    // Transpose: API returns head-major (row=head, col=spouse) but Plotly
-    // z[row][col] maps to y[row],x[col] and x=head, y=spouse, so we need
-    // row=spouse, col=head.
     const transposed = deltaGrid[0].map((_, col) =>
       deltaGrid.map((row) => row[col]),
     );
     return { grid: transposed, headLine: headFlat, spouseLine: spouseFlat };
   }
 
+  const grids = {};
   const headLines = {};
   const spouseLines = {};
 
-  for (let v = 0; v < gridVars.length; v++) {
-    const varName = gridVars[v];
+  for (const gc of country.gridConfig) {
     const { grid: transposed, headLine, spouseLine } = buildDeltaGrid(
-      marriedData[varName], headData[varName], spouseData[varName],
+      marriedData[gc.variable], headData[gc.variable], spouseData[gc.variable],
     );
-
-    headLines[tabNames[v]] = headLine;
-    spouseLines[tabNames[v]] = spouseLine;
-
-    if (varName === "household_tax_before_refundable_credits") {
-      grids[tabNames[v]] = transposed.map((row) => row.map((val) => -val));
-    } else {
-      grids[tabNames[v]] = transposed;
-    }
+    headLines[gc.tab] = headLine;
+    spouseLines[gc.tab] = spouseLine;
+    grids[gc.tab] = gc.invertDelta
+      ? transposed.map((row) => row.map((val) => -val))
+      : transposed;
   }
 
-  // Federal Credits = Total Credits - State Credits (both household-level)
-  const totalCreditsGrid = grids["Refundable Tax Credits"];
-  const stateCreditsGrid = grids["State Credits"];
-  grids["Federal Credits"] = totalCreditsGrid.map((row, i) =>
-    row.map((val, j) => val - stateCreditsGrid[i][j]),
-  );
-  headLines["Federal Credits"] = (headLines["Refundable Tax Credits"] || []).map(
-    (v, i) => v - (headLines["State Credits"]?.[i] || 0),
-  );
-  spouseLines["Federal Credits"] = (spouseLines["Refundable Tax Credits"] || []).map(
-    (v, i) => v - (spouseLines["State Credits"]?.[i] || 0),
-  );
+  // US-only: Federal Credits = Total Credits - State Credits
+  if (countryId === "us" && grids["refundable tax credits"] && grids["state credits"]) {
+    const totalCreditsGrid = grids["refundable tax credits"];
+    const stateCreditsGrid = grids["state credits"];
+    grids["federal credits"] = totalCreditsGrid.map((row, i) =>
+      row.map((val, j) => val - stateCreditsGrid[i][j]),
+    );
+    headLines["federal credits"] = (headLines["refundable tax credits"] || []).map(
+      (v, i) => v - (headLines["state credits"]?.[i] || 0),
+    );
+    spouseLines["federal credits"] = (spouseLines["refundable tax credits"] || []).map(
+      (v, i) => v - (spouseLines["state credits"]?.[i] || 0),
+    );
+  }
 
   return { grids, maxIncome, count, programData, stateCreditEntries, headLines, spouseLines };
 }
 
-export function buildCellResults(programData, headIdx, spouseIdx, count, stateCreditEntries) {
+export function buildCellResults(countryId, programData, headIdx, spouseIdx, count, stateCreditEntries) {
+  const { m, country: { aggregateMap } } = countryData(countryId);
+
   function getVal(varName, scenario) {
     const arr = programData[varName]?.[scenario];
     if (!arr || arr.length === 0) return 0;
@@ -588,30 +549,32 @@ export function buildCellResults(programData, headIdx, spouseIdx, count, stateCr
 
   function buildStateCreditDict(scenario) {
     const d = {};
-    d.state_refundable_credits = getVal("state_refundable_credits", scenario);
+    if (m.stateCredits?.length) {
+      d.state_refundable_credits = getVal("state_refundable_credits", scenario);
+    }
     for (const entry of (stateCreditEntries || [])) {
       d[entry.label] = getVal(entry.variable, scenario);
     }
     return d;
   }
 
+  function buildAggs(scenario) {
+    const aggs = {};
+    for (const [key, varName] of Object.entries(aggregateMap)) {
+      aggs[key] = varName ? getVal(varName, scenario) : 0;
+    }
+    return aggs;
+  }
+
   function buildResult(scenario) {
     return {
-      aggregates: {
-        householdNetIncome: getVal("household_net_income", scenario),
-        householdNetIncomeWithHealth: getVal("household_net_income_including_health_benefits", scenario),
-        householdBenefits: getVal("household_benefits", scenario),
-        healthcareBenefitValue: getVal("healthcare_benefit_value", scenario),
-        householdRefundableCredits: getVal("household_refundable_tax_credits", scenario),
-        householdTaxBeforeCredits: getVal("household_tax_before_refundable_credits", scenario),
-        householdRefundableStateCredits: getVal("household_refundable_state_tax_credits", scenario),
-      },
-      benefits: buildDict(metadata.benefits, scenario),
-      health: buildDict(metadata.healthcare, scenario),
-      credits: buildDict(metadata.credits, scenario),
+      aggregates: buildAggs(scenario),
+      benefits: buildDict(m.benefits, scenario),
+      health: buildDict(m.healthcare || [], scenario),
+      credits: buildDict(m.credits || [], scenario),
       stateCredits: buildStateCreditDict(scenario),
-      taxes: buildDict(metadata.taxes, scenario),
-      stateTaxes: buildDict(metadata.stateTaxes, scenario),
+      taxes: buildDict(m.taxes, scenario),
+      stateTaxes: buildDict(m.stateTaxes || [], scenario),
     };
   }
 
