@@ -232,7 +232,7 @@ export default function App() {
           <p>
             {valentine
               ? "Will tying the knot cost you? Find out this Valentine\u2019s Day."
-              : "See how marriage would change your taxes and benefits."}
+              : <>See how marriage would change your taxes and benefits. <span className="vday-hint" title="Press V for Valentine's Day mode">&hearts;</span></>}
           </p>
         </div>
       </header>

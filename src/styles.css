@@ -125,6 +125,16 @@ body {
   font-size: 0.95rem;
 }
 
+.vday-hint {
+  cursor: pointer;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+  font-size: 0.85em;
+}
+.vday-hint:hover {
+  opacity: 0.7;
+}
+
 .app-header .powered-by {
   display: block;
   font-size: 0.85rem;
