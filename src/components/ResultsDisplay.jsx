@@ -84,32 +84,32 @@ function DataTable({ rows, emptyMessage }) {
 const TAB_HEADLINE = {
   summary: {
     agg: (r, health) => r.aggregates[health ? "householdNetIncomeWithHealth" : "householdNetIncome"],
-    desc: "Change in combined net income when married vs. filing separately",
+    desc: (m, s) => `Net income: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
     invertSign: false,
   },
   taxes: {
     agg: (r) => r.aggregates.householdTaxBeforeCredits,
-    desc: "Change in total tax liability when married",
-    invertSign: true, // higher taxes = penalty
+    desc: (m, s) => `Total taxes: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
+    invertSign: true,
   },
   benefits: {
     agg: (r) => r.aggregates.householdBenefits,
-    desc: "Change in government benefits when married",
+    desc: (m, s) => `Benefits: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
     invertSign: false,
   },
   healthcare: {
     agg: (r) => r.aggregates.healthcareBenefitValue,
-    desc: "Change in healthcare benefit value when married",
+    desc: (m, s) => `Healthcare: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
     invertSign: false,
   },
   credits: {
     agg: (r) => r.aggregates.householdRefundableCredits - r.aggregates.householdRefundableStateCredits,
-    desc: "Change in federal refundable credits when married",
+    desc: (m, s) => `Federal credits: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
     invertSign: false,
   },
   state: {
     agg: (r) => r.aggregates.householdRefundableStateCredits,
-    desc: "Change in state credits when married",
+    desc: (m, s) => `State credits: married (${formatCurrency(m)}) vs. not married (${formatCurrency(s)})`,
     invertSign: false,
   },
 };
@@ -168,7 +168,7 @@ function HeadlineBanner({ results, showHealth, activeTab }) {
             {formatCurrency(delta, true)}/yr
           </span>
         )}
-        <span className="headline-desc">{tabInfo.desc}</span>
+        <span className="headline-desc">{tabInfo.desc(marriedVal, separateVal)}</span>
       </div>
       <div className="headline-actions">
         <button
