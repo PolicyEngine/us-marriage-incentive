@@ -285,7 +285,7 @@ function PersonSection({
         <label className="sf-toggle">
           <input type="checkbox" checked={hasESI} onChange={(e) => onESIChange(e.target.checked)} />
           <span className="sf-toggle-track"><span className="sf-toggle-thumb" /></span>
-          Has ESI
+          Employer insurance
         </label>
       </div>
     </div>

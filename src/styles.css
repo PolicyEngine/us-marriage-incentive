@@ -552,26 +552,20 @@ body {
 .headline-banner.bonus .headline-amount { color: var(--color-bonus); }
 .headline-banner.penalty .headline-amount { color: var(--color-penalty); }
 
+.headline-desc {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 0.1rem;
+}
+
 .headline-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.health-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  margin-top: 0.5rem;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.health-toggle input { cursor: pointer; }
 
 .share-btn {
   background: none;

@@ -81,14 +81,48 @@ function DataTable({ rows, emptyMessage }) {
   );
 }
 
-function HeadlineBanner({ results, showHealth }) {
+const TAB_HEADLINE = {
+  summary: {
+    agg: (r, health) => r.aggregates[health ? "householdNetIncomeWithHealth" : "householdNetIncome"],
+    desc: "Change in combined net income when married vs. filing separately",
+    invertSign: false,
+  },
+  taxes: {
+    agg: (r) => r.aggregates.householdTaxBeforeCredits,
+    desc: "Change in total tax liability when married",
+    invertSign: true, // higher taxes = penalty
+  },
+  benefits: {
+    agg: (r) => r.aggregates.householdBenefits,
+    desc: "Change in government benefits when married",
+    invertSign: false,
+  },
+  healthcare: {
+    agg: (r) => r.aggregates.healthcareBenefitValue,
+    desc: "Change in healthcare benefit value when married",
+    invertSign: false,
+  },
+  credits: {
+    agg: (r) => r.aggregates.householdRefundableCredits - r.aggregates.householdRefundableStateCredits,
+    desc: "Change in federal refundable credits when married",
+    invertSign: false,
+  },
+  state: {
+    agg: (r) => r.aggregates.householdRefundableStateCredits,
+    desc: "Change in state credits when married",
+    invertSign: false,
+  },
+};
+
+function HeadlineBanner({ results, showHealth, activeTab }) {
   const [copied, setCopied] = useState(false);
   const { married, headSingle, spouseSingle } = results;
 
-  const aggKey = showHealth ? "householdNetIncomeWithHealth" : "householdNetIncome";
-  const marriedNet = married.aggregates[aggKey];
-  const separateNet = headSingle.aggregates[aggKey] + spouseSingle.aggregates[aggKey];
-  const delta = marriedNet - separateNet;
+  const tabInfo = TAB_HEADLINE[activeTab] || TAB_HEADLINE.summary;
+  const marriedVal = tabInfo.agg(married, showHealth);
+  const separateVal = tabInfo.agg(headSingle, showHealth) + tabInfo.agg(spouseSingle, showHealth);
+  let delta = marriedVal - separateVal;
+  if (tabInfo.invertSign) delta = -delta;
 
   const isBonus = delta > 0;
   const isPenalty = delta < 0;
@@ -134,6 +168,7 @@ function HeadlineBanner({ results, showHealth }) {
             {formatCurrency(delta, true)}/yr
           </span>
         )}
+        <span className="headline-desc">{tabInfo.desc}</span>
       </div>
       <div className="headline-actions">
         <button
@@ -158,15 +193,10 @@ export default function ResultsDisplay({
   onCellClick: onCellClickProp,
   esiStatus,
 }) {
-  const neitherHasESI = !esiStatus?.head && !esiStatus?.spouse;
+  const showHealth = !esiStatus?.head && !esiStatus?.spouse;
   const [activeTab, setActiveTab] = useState("summary");
-  const [showHealth, setShowHealth] = useState(neitherHasESI);
   const [fullscreen, setFullscreen] = useState(false);
   const [cellSelection, setCellSelection] = useState(null);
-
-  useEffect(() => {
-    setShowHealth(neitherHasESI);
-  }, [neitherHasESI]);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -274,6 +304,7 @@ export default function ResultsDisplay({
       <HeadlineBanner
         results={activeResults}
         showHealth={showHealth}
+        activeTab={effectiveTab}
       />
       <div className="tab-bar">
         {TABS.filter((tab) => tab.key !== "healthcare" || showHealth).map((tab) => (
@@ -290,14 +321,6 @@ export default function ResultsDisplay({
       <div className="tab-content-split">
         <div className="split-table">
           <DataTable rows={rows} emptyMessage={EMPTY_MESSAGES[effectiveTab]} />
-          <label className="health-toggle" title="Include the estimated cash value of healthcare coverage (Medicaid, CHIP, ACA subsidies). These are not cash benefits but represent the value of coverage you would otherwise need to purchase.">
-            <input
-              type="checkbox"
-              checked={showHealth}
-              onChange={(e) => setShowHealth(e.target.checked)}
-            />
-            Include healthcare
-          </label>
         </div>
 
         {heatmapContent && (
