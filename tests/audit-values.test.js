@@ -13,11 +13,11 @@ import fixtures from "./fixtures.json";
 const TOLERANCE = 2; // $2 tolerance for floating-point differences
 
 const SCENARIOS = [
-  { label: "Married CA $45k/$45k no kids", args: ["CA", 45000, { head: false, spouse: false }, 45000, [], "2026"] },
-  { label: "Single CA $20k 1 child(5)", args: ["CA", 20000, { head: false }, null, [{ age: 5 }], "2026"] },
-  { label: "Low-income CA $10k 1 child(3)", args: ["CA", 10000, { head: false }, null, [{ age: 3 }], "2026"] },
-  { label: "Married NY $80k/$40k 2 kids", args: ["NY", 80000, { head: false, spouse: false }, 40000, [{ age: 8 }, { age: 12 }], "2026"] },
-  { label: "Single TX $0 no kids (zero income)", args: ["TX", 0, { head: false }, null, [], "2026"] },
+  { label: "Married CA $45k/$45k no kids", args: ["us", "CA", 45000, { head: false, spouse: false }, 45000, [], "2026"] },
+  { label: "Single CA $20k 1 child(5)", args: ["us", "CA", 20000, { head: false }, null, [{ age: 5 }], "2026"] },
+  { label: "Low-income CA $10k 1 child(3)", args: ["us", "CA", 10000, { head: false }, null, [{ age: 3 }], "2026"] },
+  { label: "Married NY $80k/$40k 2 kids", args: ["us", "NY", 80000, { head: false, spouse: false }, 40000, [{ age: 8 }, { age: 12 }], "2026"] },
+  { label: "Single TX $0 no kids (zero income)", args: ["us", "TX", 0, { head: false }, null, [], "2026"] },
 ];
 
 for (const scenario of SCENARIOS) {
@@ -107,7 +107,7 @@ for (const scenario of SCENARIOS) {
 
     it("net income identity holds", () => {
       const { householdNetIncome, householdBenefits, householdRefundableCredits, householdTaxBeforeCredits } = r.aggregates;
-      const income = scenario.args[1] + (scenario.args[3] || 0);
+      const income = scenario.args[2] + (scenario.args[4] || 0);
       const computed = income + householdBenefits + householdRefundableCredits - householdTaxBeforeCredits;
       const diff = computed - householdNetIncome;
 
