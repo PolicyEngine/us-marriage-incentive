@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { formatCurrency, formatPercent } from "../utils";
 
-function getShareUrl() {
+function getShareUrl(countryId) {
   const hash = window.location.hash;
   const isEmbedded = window.self !== window.top;
   if (isEmbedded) {
-    return `https://policyengine.org/us/us-marriage-incentive-calculator${hash}`;
+    return `https://policyengine.org/${countryId}/marriage${hash}`;
   }
   return window.location.href;
 }
 
-export default function MetricCards({ results, showHealth, currencySymbol }) {
+export default function MetricCards({ results, showHealth, currencySymbol, countryId }) {
   const sym = currencySymbol || "$";
   const { married, headSingle, spouseSingle } = results;
   const [copied, setCopied] = useState(false);
@@ -33,7 +33,7 @@ export default function MetricCards({ results, showHealth, currencySymbol }) {
   const deltaLabel = isBonus ? "Marriage bonus" : isPenalty ? "Marriage penalty" : "No change";
 
   function handleShare() {
-    const url = getShareUrl();
+    const url = getShareUrl(countryId);
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(() => {
         setCopied(true);

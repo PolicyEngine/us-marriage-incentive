@@ -207,7 +207,7 @@ export default function InputForm({ country, countries, countryId, onCountryChan
       />
 
       <PersonSection
-        title="Your Partner"
+        title="Your partner"
         accent="partner"
         income={spouseIncome}
         onIncomeChange={(v) => handleIncomeChange(setSpouseIncome, v)}

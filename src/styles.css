@@ -1062,9 +1062,20 @@ body {
    RESPONSIVE
    =========================================================== */
 @media (max-width: 1024px) {
+  .app {
+    --sidebar-width: 300px;
+  }
 }
 
 @media (max-width: 768px) {
+  .app {
+    padding: 0.75rem 1rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.3rem;
+  }
+
   .app-layout {
     grid-template-columns: 1fr;
   }
@@ -1159,6 +1170,10 @@ body {
     padding: 0.65rem;
   }
 
+  .sf-row {
+    flex-direction: column;
+  }
+
   .app-header {
     flex-wrap: wrap;
   }
@@ -1199,7 +1214,7 @@ body {
 
   .data-table {
     font-size: 0.78rem;
-    min-width: 360px;
+    min-width: 340px;
   }
 
   .data-table th {
@@ -1217,6 +1232,18 @@ body {
 
   .metric-cards {
     padding: 0.75rem;
+  }
+
+  .single-heatmap .heatmap-section svg {
+    max-height: calc(100vh - 300px);
+  }
+
+  .data-table td:first-child,
+  .data-table th:first-child {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 2;
   }
 }
 

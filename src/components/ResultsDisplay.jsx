@@ -108,7 +108,7 @@ const TAB_HEADLINE = {
   },
 };
 
-function HeadlineBanner({ results, showHealth, activeTab, currencySymbol }) {
+function HeadlineBanner({ results, showHealth, activeTab, currencySymbol, countryId }) {
   const [copied, setCopied] = useState(false);
   const { married, headSingle, spouseSingle } = results;
   const sym = currencySymbol;
@@ -134,7 +134,7 @@ function HeadlineBanner({ results, showHealth, activeTab, currencySymbol }) {
     const hash = window.location.hash;
     const isEmbedded = window.self !== window.top;
     if (isEmbedded) {
-      return `https://policyengine.org/us/us-marriage-incentive-calculator${hash}`;
+      return `https://policyengine.org/${countryId}/marriage${hash}`;
     }
     return window.location.href;
   }
@@ -362,6 +362,7 @@ export default function ResultsDisplay({
         results={activeResults}
         showHealth={showHealth}
         currencySymbol={sym}
+        countryId={countryId}
       />
       <div className="tab-bar">
         {visibleTabs.map((tab) => (
