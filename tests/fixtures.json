@@ -123,9 +123,9 @@
   },
   "Low-income CA $10k 1 child(3)": {
     "aggregates": {
-      "householdNetIncome": 48938.59,
-      "householdNetIncomeWithHealth": 56564.41,
-      "householdBenefits": 32626.0,
+      "householdNetIncome": 48946.91,
+      "householdNetIncomeWithHealth": 56572.73,
+      "householdBenefits": 32634.32,
       "householdRefundableCredits": 7077.59,
       "householdTaxBeforeCredits": 765.0,
       "healthcareBenefitValue": 7625.82,
@@ -135,7 +135,7 @@
       "social_security": 0.0,
       "ssi": 0.0,
       "snap": 2017.62,
-      "wic": 501.09,
+      "wic": 509.41,
       "free_school_meals": 0.0,
       "reduced_price_school_meals": 0.0,
       "spm_unit_broadband_subsidy": 0.0,
