@@ -190,7 +190,7 @@ export default function Heatmap({
 
   return (
     <div className="heatmap-section">
-      <h3>Change in {label}</h3>
+      <h2>Change in {label}</h2>
       <div
         ref={containerRef}
         style={{

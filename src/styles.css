@@ -1009,7 +1009,7 @@ body {
 
 .heatmap-section { margin-top: 0; }
 
-.heatmap-section h3 {
+.heatmap-section h2 {
   font-size: 1.05rem;
   margin-bottom: 0.65rem;
   color: var(--color-section-heading);
@@ -1384,3 +1384,18 @@ body {
 }
 
 .valentine .sf-child { border-color: #FECDD3; background: #FCE7F3; }
+
+/* ---- Footer ---- */
+.app-footer {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.app-footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.app-footer a:hover {
+  text-decoration: underline;
+}

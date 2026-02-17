@@ -74,7 +74,7 @@ export default function MetricCards({ results, showHealth, currencySymbol, count
       <div className={deltaClass} data-testid="metric-delta">
         <div className="metric-label-row">
           <span className="metric-label">{deltaLabel}</span>
-          <button className="share-icon-btn" onClick={handleShare} title={copied ? "Copied!" : "Copy link"}>
+          <button className="share-icon-btn" onClick={handleShare} title={copied ? "Copied!" : "Copy link"} aria-label="Copy link">
             {copied ? "\u2713" : "\u2197"}
           </button>
         </div>

@@ -263,6 +263,9 @@ export default function App() {
               initialValues={decoded.current}
               externalIncomes={externalIncomes}
             />
+            <footer className="app-footer">
+              Powered by <a href="https://policyengine.org" target="_blank" rel="noopener noreferrer">PolicyEngine</a>
+            </footer>
           </div>
         </aside>
 
