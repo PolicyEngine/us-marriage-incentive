@@ -370,11 +370,12 @@ export default function ResultsDisplay({
         currencySymbol={sym}
         countryId={countryId}
       />
-      <div className="tab-bar">
+      <nav className="tab-bar" aria-label="Result categories">
         {visibleTabs.map((tab) => (
           <button
             key={tab.key}
             className={`tab-btn ${activeTab === tab.key ? "active" : ""}`}
+            aria-pressed={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -385,13 +386,14 @@ export default function ResultsDisplay({
             <button
               key={mode}
               className={`view-toggle-btn ${viewMode === mode ? "active" : ""}`}
+              aria-pressed={viewMode === mode}
               onClick={() => setViewMode(mode)}
             >
               {mode === "table" ? "Table" : "Grid"}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
       <div className="tab-content-single">
         {viewMode === "table" && (

@@ -238,6 +238,7 @@ export default function InputForm({ country, countries, countryId, onCountryChan
           <button
             type="button"
             className="btn-add-child"
+            aria-label="Add child"
             onClick={() => setChildren([...children, { age: "5", isDisabled: false }])}
           >+</button>
         </div>
@@ -249,6 +250,7 @@ export default function InputForm({ country, countries, countryId, onCountryChan
                 min="0"
                 max="18"
                 placeholder="Age"
+                aria-label={`Child ${i + 1} age`}
                 value={child.age}
                 className={errors[`childAge${i}`] ? "input-error" : ""}
                 onChange={(e) => updateChild(i, "age", e.target.value)}
@@ -268,6 +270,7 @@ export default function InputForm({ country, countries, countryId, onCountryChan
             <button
               type="button"
               className="sf-child-rm"
+              aria-label={`Remove child ${i + 1}`}
               onClick={() => setChildren(children.filter((_, j) => j !== i))}
             >&times;</button>
           </div>
